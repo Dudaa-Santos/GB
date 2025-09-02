@@ -17,8 +17,6 @@ export const login = async (matricula, senha) => {
 
 export const buscarColabPorId = async (id, token) => {
   try {
-    console.log("Buscando colaborador com ID:", id);
-    console.log("Buscando colaborador com token:", token);
     const response = await httpClient.get(`/colaborador/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,

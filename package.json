@@ -27,7 +27,8 @@
     "react-native-reanimated": "^4.0.2",
     "react-native-safe-area-context": "^5.6.1",
     "react-native-screens": "^4.15.3",
-    "react-native-web": "^0.20.0"
+    "react-native-web": "^0.20.0",
+    "@expo/vector-icons": "^14.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
