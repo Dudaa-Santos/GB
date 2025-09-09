@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, Image } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Fundo from "../components/fundo"; 
+import Fundo from "../components/fundo";
 import { buscarColabPorId } from "../service/authService";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
@@ -55,19 +55,19 @@ export default function HomeScreen({ route, navigation }) {
           {/* STATUS BOXES */}
           <View style={styles.statusContainer}>
             <View style={styles.statusBox}>
-              <Icon name="calendar" size={28} color="#fff" style={{ marginBottom: 4}} />
+              <Icon name="calendar" size={17} color="#fff" style={{ marginBottom: 4 }} />
               <Text style={styles.statusLabel}>CONSULTAS{"\n"}AGENDADAS</Text>
               <Text style={styles.statusNumber}>02</Text>
             </View>
 
             <View style={styles.statusBox}>
-              <Icon name="file-document" size={28} color="#fff" />
+              <Icon name="file-document" size={17} color="#fff" />
               <Text style={styles.statusLabel}>ASSINATURAS{"\n"}PENDENTES</Text>
               <Text style={styles.statusNumber}>12</Text>
             </View>
 
             <View style={styles.statusBox}>
-              <Icon name="file-search" size={28} color="#fff" />
+              <Icon name="file-search" size={17} color="#fff" />
               <Text style={styles.statusLabel}>BENEFÍCIOS{"\n"}EM ANÁLISE</Text>
               <Text style={styles.statusNumber}>20</Text>
             </View>
@@ -100,7 +100,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "flex-start",
     justifyContent: "flex-start",
-    padding: 20,
   },
   titulo: {
     fontSize: 22,
@@ -115,50 +114,42 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: "row",
+    width: "100%",
+    borderWidth: 2,
+    borderColor: "#065F46",
     backgroundColor: colors.cardBg,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#065F46", // borda verde escura
-    paddingVertical: 12,    // diminui altura do card
-    paddingHorizontal: 16,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    paddingRight: 12,
+    
   },
-  prancheta: {
-    width: 110,
-    height: 150,
-    marginRight: 16,
-    marginLeft: -20, // prancheta "salta"
-  },
+
   statusContainer: {
-    flexDirection: "row",
     flex: 1,
-    justifyContent: "space-between",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    gap: 4,
   },
   statusBox: {
+    borderWidth: 1,
+    borderColor: "#fff",
     backgroundColor: colors.boxBg,
-    borderWidth: 2,
-    borderColor: "#fff", // borda branca
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    width: 95,
-    alignItems: "center",
-    marginHorizontal: 4,
+    width: 76,
+    borderRadius: 4,
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    paddingVertical: 6,
   },
   statusLabel: {
     color: "#fff",
-    fontSize: 11,
-    textAlign: "center",
-    marginTop: 4,
-    lineHeight: 14,
-    fontWeight: "500",
+    fontSize: 10,
   },
   statusNumber: {
     color: "#fff",
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
-    marginTop: 6,
+    textAlign: "center",
   },
   button: {
     marginTop: 16,
