@@ -41,7 +41,11 @@ export default function LoginScreen({ navigation }) {
       Alert.alert("Sucesso", "Login efetuado!");
       navigation.replace("Home", { id: data.id });
     } catch (err) {
-      Alert.alert("Erro", err.message);
+      // aplica nos dois campos
+      setErrors({
+        matricula: "Código ou senha inválidos.",
+        senha: "Código ou senha inválidos.",
+      });
     } finally {
       setLoading(false);
     }
