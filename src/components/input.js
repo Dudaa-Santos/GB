@@ -133,7 +133,7 @@ const tokens = {
 
 const styles = {
   wrapper: {
-    marginBottom: tokens.space.lg,
+    marginBottom: 12,
     display: 'flex',
     flexDirection: 'column',
     alignItems: "center",
@@ -189,13 +189,13 @@ const styles = {
   },
 
   errorMsg: {
-    marginTop: tokens.space.xs,
-    color: tokens.colors.error,
+    position: "absolute",
+    top: "100%",       
+    left: 4,
     fontSize: 12,
-    alignSelf: "flex-start",
-    margin: 0,
-    marginTop: tokens.space.xs,
+    color: tokens.colors.error,
   },
+
 
   helper: {
     marginTop: tokens.space.xs,
