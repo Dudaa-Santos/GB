@@ -4,6 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Fundo from "../components/fundo";
 import { buscarColabPorId } from "../service/authService";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import WeekPillStatic from "../components/calendarioSemanal";
+import CardHome from "../components/CardHome";
 
 export default function HomeScreen({ route, navigation }) {
   const [colaborador, setColaborador] = useState(null);
@@ -35,6 +37,7 @@ export default function HomeScreen({ route, navigation }) {
       console.log("Erro ao sair:", error);
     }
   };
+
 
   return (
     <Fundo>
@@ -73,7 +76,32 @@ export default function HomeScreen({ route, navigation }) {
             </View>
           </View>
         </View>
-
+        <View style={styles.calendarContainer}>
+          <WeekPillStatic />
+        </View>
+        <Text style={styles.subtitulo}>O que você deseja fazer?</Text>
+        <View style={styles.cardContainer}>
+          <CardHome
+            title="Agendar Consulta"
+            icon={<Icon name="calendar" size={24} color="#065F46" />}
+            onPress={() => console.log("Agendar Consulta")}
+          />
+          <CardHome
+            title="Solicitar Benefício"
+            icon={<Icon name="cash" size={24} color="#065F46" />}
+            onPress={() => console.log("Solicitar Benefício")}
+          />
+          <CardHome
+            title="Parcelamento Aberto"
+            icon={<Icon name="cash" size={24} color="#065F46" />}
+            onPress={() => console.log("Parcelamento Aberto")}
+          />
+          <CardHome
+            title="Documentos Enviados"
+            icon={<Icon name="folder" size={24} color="#065F46" />}
+            onPress={() => navigation.navigate("DocumentosEnviados")}
+          />
+        </View>
         <Pressable
           onPress={handleLogout}
           style={({ pressed }) => [
@@ -122,7 +150,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingRight: 12,
-    
+
   },
 
   statusContainer: {
@@ -151,6 +179,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
+  calendarContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+    alignItems: "center",
+  },
+cardContainer: {
+  flexDirection: "row",
+  flexWrap: "wrap",   
+  gap: 12,         
+},
   button: {
     marginTop: 16,
     backgroundColor: colors.brand,
