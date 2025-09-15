@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Image } from "react-native";
+import { View, Text, StyleSheet, Pressable, Image, ScrollView } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Fundo from "../components/fundo";
 import { buscarColabPorId } from "../service/authService";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import WeekPillStatic from "../components/calendarioSemanal";
 import CardHome from "../components/CardHome";
+import ButtonTextIcon from "../components/buttonTextIcon";
+import IconButton from "../components/iconButton";
 
 export default function HomeScreen({ route, navigation }) {
   const [colaborador, setColaborador] = useState(null);
@@ -58,7 +60,7 @@ export default function HomeScreen({ route, navigation }) {
           {/* STATUS BOXES */}
           <View style={styles.statusContainer}>
             <View style={styles.statusBox}>
-              <Icon name="calendar" size={17} color="#fff" style={{ marginBottom: 4 }} />
+              <Image source={require("../images/icones/Calendar_add.svg")} style={{ width: 17, height: 17, color: "#fff" }} />
               <Text style={styles.statusLabel}>CONSULTAS{"\n"}AGENDADAS</Text>
               <Text style={styles.statusNumber}>02</Text>
             </View>
@@ -77,7 +79,7 @@ export default function HomeScreen({ route, navigation }) {
           </View>
         </View>
         <View style={styles.calendarContainer}>
-          <WeekPillStatic />
+          <WeekPillStatic highlightToday={true} />
         </View>
         <Text style={styles.subtitulo}>O que você deseja fazer?</Text>
         <View style={styles.cardContainer}>
@@ -102,15 +104,11 @@ export default function HomeScreen({ route, navigation }) {
             onPress={() => navigation.navigate("DocumentosEnviados")}
           />
         </View>
-        <Pressable
-          onPress={handleLogout}
-          style={({ pressed }) => [
-            styles.button,
-            pressed && styles.buttonPressed,
-          ]}
-        >
-          <Text style={styles.buttonText}>Sair</Text>
-        </Pressable>
+        <View style={styles.buttonContainer}>
+          <ButtonTextIcon title="HISTÓRICO" icon={<Icon name="history" size={24} color="#fff" />} onPress={() => console.log("Histórico")} />
+          <IconButton icon={<Icon name="logout" size={24} color="#fff" />} onPress={handleLogout} />
+        </View>
+
       </View>
     </Fundo>
   );
@@ -152,7 +150,6 @@ const styles = StyleSheet.create({
     paddingRight: 12,
 
   },
-
   statusContainer: {
     flex: 1,
     flexDirection: "row",
@@ -184,11 +181,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignItems: "center",
   },
-cardContainer: {
-  flexDirection: "row",
-  flexWrap: "wrap",   
-  gap: 12,         
-},
+  cardContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  buttonContainer: {
+    width: "100%",
+    alignItems: "center",
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 12,
+  },
   button: {
     marginTop: 16,
     backgroundColor: colors.brand,

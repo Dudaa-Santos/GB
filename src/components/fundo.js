@@ -1,17 +1,21 @@
 import React from "react";
-import { View, Image, StyleSheet } from "react-native";
+import { View, Image, StyleSheet, ScrollView } from "react-native";
 
 export default function Fundo({ children }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Image
-          source={require("../images/logo_gb.png")}
-          style={styles.logo}
-        />
+        <Image source={require("../images/logo_gb.png")} style={styles.logo} />
       </View>
 
-      <View style={styles.content}>{children}</View>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+
+      >
+        {children}
+      </ScrollView>
     </View>
   );
 }
@@ -25,16 +29,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#065F46",
     alignItems: "center",
     justifyContent: "center",
-    height: 70
+    height: 70,
   },
   logo: {
     width: 50,
     height: 50,
-    objectFit: "contain",
+    resizeMode: "contain", // ✅ em vez de objectFit
   },
   content: {
-    flex: 1,
     backgroundColor: "#FFFEF6",
     paddingHorizontal: 20,
+    height: "100px",
   },
 });

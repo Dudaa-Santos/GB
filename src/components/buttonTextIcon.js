@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 export default function CardHome({ title, icon, onPress }) {
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress}>
+        <TouchableOpacity style={styles.Button} onPress={onPress}>
             <View style={styles.iconContainer}>{icon}</View>
             <Text style={styles.title}>{title}</Text>
         </TouchableOpacity>
@@ -11,25 +11,21 @@ export default function CardHome({ title, icon, onPress }) {
 }
 
 const styles = StyleSheet.create({
-    card: {
-        backgroundColor: "#fff",
+    Button: {
+        backgroundColor: "#059669",
         borderRadius: 8,
-        paddingHorizontal: 8,
-        justifyContent: "center",
-        marginBottom: 2,
-        width: 167,
-        height: 83,
-        elevation: 2,
         borderColor: "#065F46",
         borderWidth: 1,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-    },
-    iconContainer: {
-        marginBottom: 8,
+        padding: 16,
+        marginBottom: 12,
+        flexDirection: "row",
+        flex: 1,
+        height: 55,
+        gap:10,
     },
     title: {
-        fontSize: 14,
+        fontSize: 16,
+        fontWeight: "400",
+        color: "#fff",
     },
 });
