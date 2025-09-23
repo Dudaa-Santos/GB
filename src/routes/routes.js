@@ -6,6 +6,7 @@ import { View, ActivityIndicator } from "react-native";
 
 import Login from "../pages/login";
 import Home from "../pages/home";
+import AgendarConsulta from "../pages/agendarConsulta";
 
 const Stack = createStackNavigator();
 
@@ -42,6 +43,7 @@ export default function Routes() {
         initialRouteName={isLoggedIn ? "Home" : "Login"}
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen name="AgendarConsulta" component={AgendarConsulta} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Home" component={Home} />
       </Stack.Navigator>
