@@ -40,7 +40,6 @@ export default function HomeScreen({ route, navigation }) {
     }
   };
 
-
   return (
     <Fundo>
       <View style={styles.content}>
@@ -91,7 +90,7 @@ export default function HomeScreen({ route, navigation }) {
           <CardHome
             title="Solicitar Benefício"
             icon={<Image source={require("../images/icones/Money_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
-            onPress={() => console.log("Solicitar Benefício")}
+            onPress={() => navigation.navigate("SolicitarBeneficio")}
           />
           <CardHome
             title="Parcelamento Aberto"
