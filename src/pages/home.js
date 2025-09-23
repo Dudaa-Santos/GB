@@ -86,7 +86,7 @@ export default function HomeScreen({ route, navigation }) {
           <CardHome
             title="Agendar Consulta"
             icon={<Image source={require("../images/icones/Calendar_add_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
-            onPress={() => console.log("Agendar Consulta")}
+            onPress={() => navigation.navigate("AgendarConsulta")}
           />
           <CardHome
             title="Solicitar Benefício"

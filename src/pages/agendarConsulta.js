@@ -1,9 +1,9 @@
 import react from "react";
 
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text} from "react-native";
 import Fundo from "../components/fundo";
 
-export function AgendarConsulta() {
+export default function AgendarConsulta() {
     return (
         <Fundo>
             <View style={styles.content}>

@@ -43,9 +43,9 @@ export default function Routes() {
         initialRouteName={isLoggedIn ? "Home" : "Login"}
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen name="AgendarConsulta" component={AgendarConsulta} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="AgendarConsulta" component={AgendarConsulta} />
       </Stack.Navigator>
     </NavigationContainer>
   );
