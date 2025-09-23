@@ -60,19 +60,19 @@ export default function HomeScreen({ route, navigation }) {
           {/* STATUS BOXES */}
           <View style={styles.statusContainer}>
             <View style={styles.statusBox}>
-              <Image source={require("../images/icones/Calendar_add.svg")} style={{ width: 17, height: 17, color: "#fff" }} />
+              <Image source={require("../images/icones/Calendar_add_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
               <Text style={styles.statusLabel}>CONSULTAS{"\n"}AGENDADAS</Text>
               <Text style={styles.statusNumber}>02</Text>
             </View>
 
             <View style={styles.statusBox}>
-              <Icon name="file-document" size={17} color="#fff" />
+              <Image source={require("../images/icones/File_dock_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
               <Text style={styles.statusLabel}>ASSINATURAS{"\n"}PENDENTES</Text>
               <Text style={styles.statusNumber}>12</Text>
             </View>
 
             <View style={styles.statusBox}>
-              <Icon name="file-search" size={17} color="#fff" />
+              <Image source={require("../images/icones/File_dock_search_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
               <Text style={styles.statusLabel}>BENEFÍCIOS{"\n"}EM ANÁLISE</Text>
               <Text style={styles.statusNumber}>20</Text>
             </View>
@@ -85,27 +85,27 @@ export default function HomeScreen({ route, navigation }) {
         <View style={styles.cardContainer}>
           <CardHome
             title="Agendar Consulta"
-            icon={<Icon name="calendar" size={24} color="#065F46" />}
+            icon={<Image source={require("../images/icones/Calendar_add_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => console.log("Agendar Consulta")}
           />
           <CardHome
             title="Solicitar Benefício"
-            icon={<Icon name="cash" size={24} color="#065F46" />}
+            icon={<Image source={require("../images/icones/Money_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => console.log("Solicitar Benefício")}
           />
           <CardHome
             title="Parcelamento Aberto"
-            icon={<Icon name="cash" size={24} color="#065F46" />}
+            icon={<Image source={require("../images/icones/Wallet_alt_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => console.log("Parcelamento Aberto")}
           />
           <CardHome
             title="Documentos Enviados"
-            icon={<Icon name="folder" size={24} color="#065F46" />}
+            icon={<Image source={require("../images/icones/Folder_check_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => navigation.navigate("DocumentosEnviados")}
           />
         </View>
         <View style={styles.buttonContainer}>
-          <ButtonTextIcon title="HISTÓRICO" icon={<Icon name="history" size={24} color="#fff" />} onPress={() => console.log("Histórico")} />
+          <ButtonTextIcon title="HISTÓRICO" icon={<Image source={require("../images/icones/history_w.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />} onPress={() => console.log("Histórico")} />
           <IconButton icon={<Icon name="logout" size={24} color="#fff" />} onPress={handleLogout} />
         </View>
 
