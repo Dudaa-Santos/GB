@@ -7,7 +7,7 @@ import {
   FlatList,
 } from 'react-native';
 
-const CustomSelect = ({ data, placeholder, onValueChange, selectedValue, containerStyle }) => {
+const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyle }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const selectedLabel = data.find(item => item.value === selectedValue)?.label;
@@ -101,4 +101,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CustomSelect;
+export default Select;
