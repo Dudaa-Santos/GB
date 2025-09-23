@@ -1,4 +1,3 @@
-// src/screens/SolicitarBeneficioScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,6 +12,7 @@ import {
 import Fundo from '../components/fundo';
 import TituloIcone from '../components/tituloIcone';
 import Select from '../components/select';
+import RadioGroup from '../components/radioGroup'; 
 import { buscarColabPorId } from '../service/authService';
 
 const beneficiosMock = [
@@ -26,33 +26,45 @@ const parcelasMock = [
   { label: '4x', value: 4 }, { label: '5x', value: 5 }, { label: '6x', value: 6 },
 ];
 
-export default function SolicitarBeneficioScreen({ navigation }) {
+const radioOptions = [
+  { label: 'Sim', value: 'sim' },
+  { label: 'Não', value: 'nao' },
+];
+
+export default function SolicitarBeneficio({ navigation }) {
   const [colaboradores, setColaboradores] = useState([]);
   const [selectedColaborador, setSelectedColaborador] = useState(null);
   const [selectedBeneficio, setSelectedBeneficio] = useState(null);
   const [valor, setValor] = useState('');
-  const [descontarFolha, setDescontarFolha] = useState('nao');
   const [selectedParcela, setSelectedParcela] = useState(null);
   const [descricao, setDescricao] = useState('');
+  const [tipo, setTipo] = useState('');
 
   useEffect(() => {
-    const carregarDados = async () => {
+    const fetchUser = async () => {
       try {
-        const data = await buscarColabPorId();
-        const colaboradoresFormatados = data.map(colab => ({
-          label: colab.nome,
-          value: colab.id,
-        }));
-        setColaboradores(colaboradoresFormatados);
+        const id = await AsyncStorage.getItem("id");
+
+        if (id && token) {
+          const data = await buscarColabPorId(id);
+          console.log("Dados do colaborador:", data);
+          setColaborador(data);
+        }
       } catch (error) {
-        Alert.alert('Erro', 'Não foi possível carregar a lista de colaboradores.');
+        console.log("Erro ao buscar colaborador:", error);
       }
     };
-    carregarDados();
+    fetchUser();
   }, []);
 
+  const handleDescontarChange = (value) => {
+    setDescontarFolha(value);
+    if (value === 'nao') {
+      setSelectedParcela(null); // Limpa a parcela se escolher 'Não'
+    }
+  };
+
   const handleSolicitar = () => {
-    // ... sua lógica de solicitação ...
     Alert.alert('Sucesso', 'Sua solicitação foi enviada!');
   };
 
@@ -88,29 +100,24 @@ export default function SolicitarBeneficioScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="Digite o valor"
+            placeholderTextColor="#9CA3AF"
             keyboardType="numeric"
             value={valor}
             onChangeText={setValor}
           />
           
-          {/* ✨ CORREÇÃO AQUI: Lógica e estilo dos Radio Buttons ajustados */}
           <Text style={styles.label}>Descontar em folha?</Text>
-          <View style={styles.radioContainer}>
-            <Pressable style={styles.radioOption} onPress={() => setDescontarFolha('sim')}>
-              <View style={styles.radioCircle}>
-                {descontarFolha === 'sim' && <View style={styles.radioInnerCircle} />}
-              </View>
-              <Text style={styles.radioText}>Sim</Text>
-            </Pressable>
-            <Pressable style={styles.radioOption} onPress={() => setDescontarFolha('nao')}>
-              <View style={styles.radioCircle}>
-                {descontarFolha === 'nao' && <View style={styles.radioInnerCircle} />}
-              </View>
-              <Text style={styles.radioText}>Não</Text>
-            </Pressable>
-          </View>
+
+          <RadioGroup
+            value={tipo}
+            onChange={setTipo}
+            options={[
+            { label: "Sim", value: "Sim" },
+            { label: "Não", value: "Não" },
+            ]}
+           />
           
-          {descontarFolha === 'sim' && (
+          {tipo === 'Sim' && (
             <>
               <Text style={styles.label}>Parcela</Text>
               <Select
@@ -126,14 +133,14 @@ export default function SolicitarBeneficioScreen({ navigation }) {
           <TextInput
             style={styles.textArea}
             placeholder="Digite aqui a descrição"
+            placeholderTextColor="#9CA3AF"
             multiline
-            numberOfLines={5}
             value={descricao}
             onChangeText={setDescricao}
           />
 
-          <Pressable style={styles.documentButton} onPress={() => Alert.alert('Aviso', 'Funcionalidade de envio de documento ainda não implementada.')}>
-             <Image source={require('../images/icones/Envio_w.png')} style={styles.buttonIcon} />
+          <Pressable style={styles.documentButton}>
+            <Image source={require('../images/icones/Envio_w.png')} style={styles.buttonIcon} />
             <Text style={styles.documentButtonText}>Enviar documento</Text>
           </Pressable>
 
@@ -148,10 +155,12 @@ export default function SolicitarBeneficioScreen({ navigation }) {
 
 const colors = {
   primary: '#0B684F',
-  secondary: '#107c5c',
+  secondary: '#049669',
   background: '#FDFBF6',
-  textPrimary: '#111827',
-  border: '#D1D5DB',
+  textPrimary: '#374151',
+  textInput: '#1F2937',
+  border: '#E5E7EB',
+  placeholder: '#9CA3AF',
 };
 
 const styles = StyleSheet.create({
@@ -161,15 +170,13 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     backgroundColor: colors.background,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 20,
+    marginHorizontal: 20,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   label: {
     fontSize: 16,
@@ -182,60 +189,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
-    height: 50,
+    height: 52,
     fontSize: 16,
-    color: colors.textPrimary,
+    color: colors.textInput,
   },
   textArea: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: colors.textPrimary,
+    color: colors.textInput,
     height: 120,
     textAlignVertical: 'top',
-  },
-  radioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 24,
-  },
-  // ✨ CORREÇÃO AQUI: Estilos para o radio button
-  radioCircle: {
-    height: 22,
-    width: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioInnerCircle: {
-    height: 12,
-    width: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-  },
-  radioText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: colors.textPrimary,
   },
   documentButton: {
     flexDirection: 'row',
     backgroundColor: colors.secondary,
-    borderRadius: 8,
+    borderRadius: 14,
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
@@ -245,11 +220,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   submitButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: 14,
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
@@ -261,8 +236,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   buttonIcon: {
-      width: 20,
-      height: 20,
-      resizeMode: 'contain',
-  }
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+  },
 });

@@ -18,7 +18,6 @@ const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyl
   };
 
   return (
-    // O containerStyle e o zIndex são importantes para que um dropdown não fique por baixo do outro
     <View style={[styles.container, containerStyle, { zIndex: isOpen ? 100 : 1 }]}>
       <Pressable style={styles.selectButton} onPress={() => setIsOpen(!isOpen)}>
         <Text style={[styles.selectButtonText, !selectedLabel && styles.placeholderText]}>
@@ -46,7 +45,7 @@ const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyl
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative', // Essencial para o posicionamento absoluto da lista
+    position: 'relative', 
     width: '100%',
   },
   selectButton: {
@@ -71,20 +70,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
   },
-  // ✨ Nova estilização para a lista dropdown
+
   optionsContainer: {
     position: 'absolute',
-    top: '100%', // Posiciona a lista logo abaixo do botão
+    top: '100%', 
     left: 0,
     right: 0,
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
-    marginTop: 4, // Pequeno espaço entre o input e a lista
-    maxHeight: 200, // Altura máxima antes de habilitar o scroll
-    elevation: 5, // Sombra para Android
-    shadowColor: '#000', // Sombra para iOS
+    marginTop: 4, 
+    maxHeight: 200,
+    elevation: 5, 
+    shadowColor: '#000', 
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
