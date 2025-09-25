@@ -1,42 +1,51 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { buscarColabPorId } from "../service/authService";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
+import Input from "../components/input";
+import Select from "../components/select";
 import RadioGroup from "../components/radioGroup";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-// import Select from "../components/select"; // use quando precisar
+import { buscarColabPorId } from "../service/authService";
 
 export default function AgendarConsulta() {
   const [tipo, setTipo] = useState("colaborador");
   const [colaborador, setColaborador] = useState(null);
-  const [loading, setLoading] = useState(false);
+    const [dependenteSel, setDependenteSel] = useState(null);
+
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    (async () => {
       try {
-        setLoading(true);
         const id = await AsyncStorage.getItem("id");
         const token = await AsyncStorage.getItem("token");
 
-        if (id && token) {
-          const data = await buscarColabPorId(id, token);
-          // Se seu service retorna response.data já “limpo”,
-          // então 'data' deve ser { id, nome, ... }
-          setColaborador(data);
+        if (!id || !token) {
+          setError("Sessão inválida. Faça login novamente.");
+          return;
         }
-      } catch (error) {
-        console.log("Erro ao buscar colaborador:", error);
-      } finally {
-        setLoading(false);
+
+        const resp = await buscarColabPorId(id, token);
+
+        // ⚠️ Ajuste aqui conforme o formato real do retorno
+        setColaborador(resp?.data ?? resp ?? null);
+      } catch (e) {
+        console.log("Erro ao buscar colaborador:", e);
+        setError("Não foi possível carregar os dados do colaborador.");
       }
-    };
-    fetchUser();
+    })();
   }, []);
 
   const nomeColab =
-    // tente primeiro sem .data; se seu backend envolver, troque para colaborador?.data?.nome
-    colaborador?.nome ?? colaborador?.data?.nome ?? "";
+    colaborador?.nome ??
+    colaborador?.data?.nome ??
+    "";
+
+  const dependentes =
+    colaborador?.dependentes ??
+    colaborador?.data?.dependentes ??
+    [];
 
   return (
     <Fundo>
@@ -56,20 +65,36 @@ export default function AgendarConsulta() {
             { label: "Dependente", value: "dependente" },
           ]}
         />
+ {tipo === "colaborador" ? (
+        <Input
+          label="Nome do Colaborador"
+          placeholder={nomeColab || "Carregando..."}
+          value={nomeColab}
+          disabled={true}        // seu Input deve mapear para editable={false}
+          errorText={error || undefined}
+        />
+      ) : (
+        // 🔧 Envolva os dois elementos com um pai (Fragment ou View)
+        <>
+          <Text>
+            Dependente {dependentes.map((dep) => dep.nome).join(", ")}
+          </Text>
 
-        <Text style={styles.label}>
-          {loading
-            ? "Carregando..."
-            : tipo === "colaborador"
-            ? `Colaborador: ${nomeColab || "(não encontrado)"}`
-            : "Selecione o dependente"}
-        </Text>
+          <Select
+            placeholder="Selecione o dependente"
+            data={dependentes.map((dep) => ({ label: dep.nome, value: dep.id }))}
+            selectedValue={dependenteSel}              // ← agora tem estado
+            onValueChange={(val) => setDependenteSel(val)} // ← atualiza estado
+          />
+        </>
+      )}
+
       </View>
     </Fundo>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  label: { fontSize: 20, marginTop: 10, marginBottom: 8 },
+  container: { flex: 1, padding: 16, gap: 8 },
+  label: { fontSize: 18, marginTop: 10, marginBottom: 6, color: "#111827" },
 });
