@@ -179,10 +179,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
   cardContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 12,
   },
   buttonContainer: {

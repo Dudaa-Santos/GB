@@ -3,21 +3,24 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 export default function CardHome({ title, icon, onPress }) {
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress}>
-            <View style={styles.iconContainer}>{icon}</View>
-            <Text style={styles.title}>{title}</Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.card} onPress={onPress}>
+                <View style={styles.iconContainer}>{icon}</View>
+                <Text style={styles.title}>{title}</Text>
+            </TouchableOpacity>
+
     );
 }
 
 const styles = StyleSheet.create({
+
     card: {
         backgroundColor: "#fff",
         borderRadius: 8,
         paddingHorizontal: 8,
         justifyContent: "center",
+        alignItems:"stretch",
         marginBottom: 2,
-        width: 167,
+        width: "48%",
         height: 83,
         elevation: 2,
         borderColor: "#065F46",

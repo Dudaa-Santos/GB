@@ -30,3 +30,35 @@ export const buscarColabPorId = async (id, token) => {
     throw new Error("Falha de conexão com o servidor");
   }
 };
+
+export const buscarEspecialidade = async (token) => {
+  try {
+    const response = await httpClient.get(`/especialidade`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar especialidade");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};
+
+export const buscarMedicos = async ( token) => {
+  try {
+    const response = await httpClient.get(`/medico`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar médicos");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};

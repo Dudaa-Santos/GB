@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback } from "react";
+import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 
 export default function Input({
   label,
@@ -40,9 +41,9 @@ export default function Input({
     [onBlur]
   );
   
-  const handleChange = (e) => {
-      if(onChangeText) onChangeText(e.target.value);
-      if(onChange) onChange(e);
+  const handleChange = (text) => {
+      if(onChangeText) onChangeText(text);
+      if(onChange) onChange(text);
   }
 
   const inputStyles = useMemo(() => {
@@ -59,32 +60,32 @@ export default function Input({
         stylesArray.push(inputStyle);
     }
 
-    return Object.assign({}, ...stylesArray);
+    return stylesArray;
   }, [focused, hasError, isDisabled, inputStyle]);
 
   const labelStyles = useMemo(() => {
     const stylesArray = [styles.label];
     if (isDisabled) stylesArray.push(styles.labelDisabled);
     if (hasError) stylesArray.push(styles.labelError);
-    return Object.assign({}, ...stylesArray);
+    return stylesArray;
   }, [isDisabled, hasError]);
 
 
   return (
-    <div style={{...styles.wrapper, ...containerStyle}}>
+    <View style={[styles.wrapper, containerStyle]}>
       {label ? (
-        <label style={labelStyles}>
+        <Text style={labelStyles}>
           {label}
-        </label>
+        </Text>
       ) : null}
 
-      <div style={styles.inputContainer}>
-        <input
+      <View style={styles.inputContainer}>
+        <TextInput
           value={value}
-          onChange={handleChange}
+          onChangeText={handleChange}
           placeholder={placeholder}
-          disabled={isDisabled}
-          type={secure ? "password" : "text"}
+          editable={!isDisabled}
+          secureTextEntry={secure}
           style={inputStyles}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -92,23 +93,23 @@ export default function Input({
         />
 
         {secureTextEntry && showPasswordToggle ? (
-          <button
-            onClick={() => setSecure((s) => !s)}
+          <Pressable
+            onPress={() => setSecure((s) => !s)}
             style={styles.passwordToggle}
           >
-            <span style={styles.passwordToggleText}>
+            <Text style={styles.passwordToggleText}>
               {secure ? "Mostrar" : "Ocultar"}
-            </span>
-          </button>
+            </Text>
+          </Pressable>
         ) : null}
-      </div>
+      </View>
 
       {hasError ? (
-        <p style={styles.errorMsg}>{errorText}</p>
+        <Text style={styles.errorMsg}>{errorText}</Text>
       ) : helperText ? (
-        <p style={styles.helper}>{helperText}</p>
+        <Text style={styles.helper}>{helperText}</Text>
       ) : null}
-    </div>
+    </View>
   );
 }
 
@@ -116,7 +117,7 @@ const tokens = {
   colors: {
     brand: "#047857",
     focus: "#047857", 
-    textPrimary: "#111827",
+    textPrimary: "#121212",
     textSecondary: "#6B7280",
     textInverse: "#FFFFFF",
     surface: "#FFFFFF",
@@ -131,13 +132,12 @@ const tokens = {
   space: { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24 },
 };
 
-const styles = {
+const styles = StyleSheet.create({
   wrapper: {
     marginBottom: 12,
-    display: 'flex',
     flexDirection: 'column',
-    alignItems: "center",
-    fontFamily: 'sans-serif',
+    alignItems: "stretch",
+    width: '100%',
   },
 
   label: {
@@ -159,28 +159,24 @@ const styles = {
 
   input: {
     borderWidth: 1.2,
-    borderStyle: 'solid',
     borderColor: tokens.colors.border,
     borderRadius: tokens.radius.sm,
-    width: 300,
+    width: '100%',
     height: 40,
-    padding: `0 ${tokens.space.sm}px`,
+    paddingHorizontal: tokens.space.sm,
     fontSize: 14,
     backgroundColor: tokens.colors.surface,
     color: tokens.colors.textPrimary,
-    boxSizing: 'border-box',
   },
 
   inputDisabled: {
     backgroundColor: tokens.colors.disabledBg,
     color: tokens.colors.disabledText,
     borderColor: tokens.colors.border,
-    cursor: 'not-allowed',
   },
 
   inputFocused: {
     borderColor: tokens.colors.focus,
-    outline: 'none',
   },
 
   inputError: {
@@ -196,14 +192,11 @@ const styles = {
     color: tokens.colors.error,
   },
 
-
   helper: {
     marginTop: tokens.space.xs,
     color: tokens.colors.textSecondary,
     fontSize: 12,
     alignSelf: "flex-start",
-    margin: 0,
-    marginTop: tokens.space.xs,
   },
 
   passwordToggle: {
@@ -211,12 +204,9 @@ const styles = {
     right: tokens.space.sm,
     top: 0,
     bottom: 0,
-    display: 'flex',
     justifyContent: "center",
     alignItems: 'center',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
+    backgroundColor: 'transparent',
     padding: 0,
   },
   passwordToggleText: {
@@ -224,4 +214,4 @@ const styles = {
     color: tokens.colors.brand,
     fontWeight: "600",
   },
-};
+});

@@ -4,10 +4,10 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  FlatList,
+  ScrollView,
 } from 'react-native';
 
-const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyle }) => {
+const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyle, label }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const selectedLabel = data.find(item => item.value === selectedValue)?.label;
@@ -19,6 +19,12 @@ const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyl
 
   return (
     <View style={[styles.container, containerStyle, { zIndex: isOpen ? 100 : 1 }]}>
+      {label ? (
+        <Text style={styles.label}>
+          {label}
+        </Text>
+      ) : null}
+
       <Pressable style={styles.selectButton} onPress={() => setIsOpen(!isOpen)}>
         <Text style={[styles.selectButtonText, !selectedLabel && styles.placeholderText]}>
           {selectedLabel || placeholder}
@@ -28,15 +34,17 @@ const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyl
 
       {isOpen && (
         <View style={styles.optionsContainer}>
-          <FlatList
-            data={data}
-            keyExtractor={(item) => item.value.toString()}
-            renderItem={({ item }) => (
-              <Pressable style={styles.option} onPress={() => handleSelect(item)}>
+          <ScrollView nestedScrollEnabled={true}>
+            {data.map((item) => (
+              <Pressable
+                key={item.value.toString()}
+                style={styles.option}
+                onPress={() => handleSelect(item)}
+              >
                 <Text style={styles.optionText}>{item.label}</Text>
               </Pressable>
-            )}
-          />
+            ))}
+          </ScrollView>
         </View>
       )}
     </View>
@@ -45,19 +53,26 @@ const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyl
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative', 
+    position: 'relative',
     width: '100%',
+  },
+  label: {
+    fontSize: 14,
+    color: '#121212',
+    marginBottom: 8,
+    alignSelf: 'flex-start',
   },
   selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F7F7',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#3A3A3A',
     borderRadius: 8,
     paddingHorizontal: 16,
-    height: 50,
+    width: '100%',
+    height: 40,
   },
   selectButtonText: {
     fontSize: 16,
@@ -73,17 +88,17 @@ const styles = StyleSheet.create({
 
   optionsContainer: {
     position: 'absolute',
-    top: '100%', 
+    top: '100%',
     left: 0,
     right: 0,
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
-    marginTop: 4, 
+    marginTop: 4,
     maxHeight: 200,
-    elevation: 5, 
-    shadowColor: '#000', 
+    elevation: 5,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
