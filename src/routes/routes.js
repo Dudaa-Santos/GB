@@ -8,6 +8,7 @@ import Login from "../pages/login";
 import Home from "../pages/home";
 import AgendarConsulta from "../pages/agendarConsulta";
 import SolicitarBeneficio from "../pages/solicitarBeneficio.js";
+import ParcelamentoAberto from "../pages/parcelamentoAberto.js";
 
 const Stack = createStackNavigator();
 
@@ -48,6 +49,7 @@ export default function Routes() {
         <Stack.Screen name="AgendarConsulta" component={AgendarConsulta} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="ParcelamentoAberto" component={ParcelamentoAberto} />
       </Stack.Navigator>
     </NavigationContainer>
   );

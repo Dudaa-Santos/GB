@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,25 +7,78 @@ import {
   ScrollView,
 } from 'react-native';
 
+// Sistema global para controlar qual select está aberto
+let globalOpenSelectId = null;
+const selectInstances = new Set();
+
 const Select = ({ data, placeholder, onValueChange, selectedValue, containerStyle, label }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const selectId = useRef(Math.random().toString(36).substr(2, 9));
 
   const selectedLabel = data.find(item => item.value === selectedValue)?.label;
+
+  // Registra esta instância do Select
+  useEffect(() => {
+    selectInstances.add({
+      id: selectId.current,
+      setIsOpen
+    });
+
+    return () => {
+      selectInstances.forEach(instance => {
+        if (instance.id === selectId.current) {
+          selectInstances.delete(instance);
+        }
+      });
+    };
+  }, []);
+
+  const handleToggle = () => {
+    if (isOpen) {
+      // Se está aberto, fecha
+      setIsOpen(false);
+      globalOpenSelectId = null;
+    } else {
+      // Fecha todos os outros selects
+      selectInstances.forEach(instance => {
+        if (instance.id !== selectId.current) {
+          instance.setIsOpen(false);
+        }
+      });
+      
+      // Abre este select
+      setIsOpen(true);
+      globalOpenSelectId = selectId.current;
+    }
+  };
 
   const handleSelect = (item) => {
     onValueChange(item.value);
     setIsOpen(false);
+    globalOpenSelectId = null;
   };
 
+  // Fecha o select quando outro componente é tocado
+  useEffect(() => {
+    const checkAndClose = () => {
+      if (isOpen && globalOpenSelectId !== selectId.current) {
+        setIsOpen(false);
+      }
+    };
+
+    const interval = setInterval(checkAndClose, 100);
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
   return (
-    <View style={[styles.container, containerStyle, { zIndex: isOpen ? 100 : 1 }]}>
+    <View style={[styles.container, containerStyle, { zIndex: isOpen ? 1000 : 1 }]}>
       {label ? (
         <Text style={styles.label}>
           {label}
         </Text>
       ) : null}
 
-      <Pressable style={styles.selectButton} onPress={() => setIsOpen(!isOpen)}>
+      <Pressable style={styles.selectButton} onPress={handleToggle}>
         <Text style={[styles.selectButtonText, !selectedLabel && styles.placeholderText]}>
           {selectedLabel || placeholder}
         </Text>

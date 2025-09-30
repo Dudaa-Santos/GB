@@ -59,11 +59,11 @@ export default function CalendarioSemanalSelecionado({
   onChange,
   initialMonth = new Date(),
   holidaysISO = [],
-  dotsISO = [],
-  highlightToday = true,
 
   // extras
   disableWeekends = true,           // desabilita sáb/dom
+  disabledDaysOfWeek = [],          // array de dias da semana desabilitados (0=dom, 1=seg, etc.)
+  disabled = false,                 // desabilita todo o calendário
   sidePadding = 12,                 // respiro nas laterais
   title = "Selecione a data",       // texto à esquerda
 }) {
@@ -72,7 +72,7 @@ export default function CalendarioSemanalSelecionado({
     d.setDate(1);
     return d;
   });
-  const [internalISO, setInternalISO] = useState(() => toISO(new Date()));
+  const [internalISO, setInternalISO] = useState(null);
   const selectedISO = controlledISO ?? internalISO;
 
   const todayISO = useMemo(() => toISO(new Date()), []);
@@ -83,6 +83,12 @@ export default function CalendarioSemanalSelecionado({
 
   useEffect(() => {
     // mantém visível a semana do dia selecionado ao trocar de mês
+    if (!selectedISO) {
+      // Se não há data selecionada, vai para a primeira semana
+      listRef.current?.scrollToIndex({ index: 0, animated: false });
+      return;
+    }
+
     const selectedDate = fromISO(selectedISO);
     const sameMonth =
       selectedDate.getFullYear() === viewMonth.getFullYear() &&
@@ -124,19 +130,20 @@ export default function CalendarioSemanalSelecionado({
       <View style={[styles.row, { width: containerWidth, paddingHorizontal: sidePadding }]}>
         {week.map((d, idx) => {
           const isToday = d.iso === todayISO;
-          const isSelected = selectedISO ? selectedISO === d.iso : highlightToday && isToday;
+          const isSelected = selectedISO === d.iso;
 
           const isHoliday = holidaysISO.includes(d.iso);
           const isWeekend = d.dow === 0 || d.dow === 6;
-          const disabled = isHoliday || (disableWeekends && isWeekend);
+          const isDisabledDay = disabledDaysOfWeek.includes(d.dow);
+          const dayDisabled = isHoliday || (disableWeekends && isWeekend) || isDisabledDay;
+          const isDisabled = disabled || dayDisabled;
 
           const isOut = !d.inMonth;
-          const hasDot = dotsISO.includes(d.iso);
 
           return (
             <Pressable
               key={d.iso}
-              disabled={disabled}
+              disabled={isDisabled}
               onPress={() => {
                 if (!d.inMonth) {
                   const newMonth = new Date(d.date.getFullYear(), d.date.getMonth(), 1);
@@ -150,27 +157,27 @@ export default function CalendarioSemanalSelecionado({
                 isSelected ? styles.pillSelected : styles.pillDefault,
                 isOut && !isSelected && { opacity: 0.35 },
 
-                // ✅ cor diferente quando está desabilitado por ser fim de semana
-                disabled && !isSelected && (isWeekend ? styles.weekendDisabled : styles.pillDisabled),
+                // ✅ cor diferente quando está desabilitado por diferentes motivos
+                isDisabled && !isSelected && (disabled ? styles.calendarDisabled : isWeekend ? styles.weekendDisabled : isDisabledDay ? styles.doctorUnavailableDisabled : styles.pillDisabled),
               ]}
             >
               <Text
                 style={[
                   styles.weekLabel,
                   isSelected && styles.weekLabelSelected,
-                  disabled && !isSelected && styles.textMuted,
+                  isDisabled && !isSelected && styles.textMuted,
                 ]}
               >
                 {PT_WEEK[d.dow]}
               </Text>
 
-              {hasDot && <View style={[styles.dot, isSelected && styles.dotSelected]} />}
+                
 
               <Text
                 style={[
                   styles.dayNumber,
                   isSelected && styles.dayNumberSelected,
-                  disabled && !isSelected && styles.textMuted,
+                  isDisabled && !isSelected && styles.textMuted,
                 ]}
               >
                 {d.date.getDate()}
@@ -190,7 +197,7 @@ export default function CalendarioSemanalSelecionado({
 
   return (
     <View
-      style={[styles.container, { paddingVertical: 8 }]}
+      style={[styles.container, { paddingVertical: 8, opacity: disabled ? 0.6 : 1 }]}
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
       {/* linha: "Selecione a data" + mês e setas */}
@@ -199,9 +206,9 @@ export default function CalendarioSemanalSelecionado({
           <Text style={styles.title}>{title}</Text>
 
           <View style={styles.monthNavInline}>
-            <Text onPress={goPrevMonth} style={styles.chevron}>{'\u2039'}</Text>
+            <Text onPress={disabled ? null : goPrevMonth} style={[styles.chevron, disabled && styles.chevronDisabled]}>{'\u2039'}</Text>
             <Text style={styles.monthTitle}>{monthLabelPT(viewMonth)}</Text>
-            <Text onPress={goNextMonth} style={styles.chevron}>{'\u203A'}</Text>
+            <Text onPress={disabled ? null : goNextMonth} style={[styles.chevron, disabled && styles.chevronDisabled]}>{'\u203A'}</Text>
           </View>
         </View>
       </View>
@@ -250,19 +257,20 @@ const styles = StyleSheet.create({
   monthNavInline: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap:2,
   },
   monthTitle: {
     fontSize: 14,
-    fontWeight: "600",
     color: "#333",
-    letterSpacing: 1,
   },
   chevron: {
     fontSize: 18,
     fontWeight: "700",
     color: "#0B7A5A",
     paddingHorizontal: 4,
+  },
+  chevronDisabled: {
+    color: "#C7C7C7",
   },
 
   row: {
@@ -283,10 +291,21 @@ const styles = StyleSheet.create({
   // desabilitado "normal" (ex: feriado)
   pillDisabled: { borderColor: "#C7C7C7", backgroundColor: "transparent" },
 
-  // ✅ desabilitado por ser fim de semana
   weekendDisabled: {
-    borderColor: "#616161",     // borda laranja suave
-    backgroundColor: "#B1B1B1", // fundo pêssego claro
+    borderColor: "#616161",     
+    backgroundColor: "#D8D7D3", 
+  },
+
+  // dias que o médico não atende
+  doctorUnavailableDisabled: {
+    borderColor: "#616161",     
+    backgroundColor: "#D8D7D3", 
+  },
+
+  // calendário todo desabilitado
+  calendarDisabled: {
+    borderColor: "#E5E5E5",     
+    backgroundColor: "#F5F5F5", 
   },
 
   weekLabel: { fontSize: 12, color: "#6B6B6B", marginBottom: 6, fontWeight: "700" },
@@ -295,6 +314,4 @@ const styles = StyleSheet.create({
   dayNumberSelected: { color: "#FFFFFF" },
   textMuted: { color: "#9B9B9B" },
 
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#595959", marginBottom: 6 },
-  dotSelected: { backgroundColor: "#E9FFF7" },
 });

@@ -95,7 +95,7 @@ export default function HomeScreen({ route, navigation }) {
           <CardHome
             title="Parcelamento Aberto"
             icon={<Image source={require("../images/icones/Wallet_alt_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
-            onPress={() => console.log("Parcelamento Aberto")}
+            onPress={() => navigation.navigate("ParcelamentoAberto")}
           />
           <CardHome
             title="Documentos Enviados"

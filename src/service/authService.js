@@ -62,3 +62,19 @@ export const buscarMedicos = async ( token) => {
     throw new Error("Falha de conexão com o servidor");
   }
 };
+
+export const buscarSolicitacoes = async (token) => {
+  try {
+    const response = await httpClient.get(`/solicitacao`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar solicitações");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};
