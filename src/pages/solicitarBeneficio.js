@@ -7,12 +7,13 @@ import {
   TextInput,
   Pressable,
   Alert,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Fundo from '../components/fundo';
 import TituloIcone from '../components/tituloIcone';
 import Select from '../components/select';
-import RadioGroup from '../components/radioGroup'; 
+import RadioGroup from '../components/radioGroup';
 import { buscarColabPorId } from '../service/authService';
 
 const beneficiosMock = [
@@ -26,11 +27,6 @@ const parcelasMock = [
   { label: '4x', value: 4 }, { label: '5x', value: 5 }, { label: '6x', value: 6 },
 ];
 
-const radioOptions = [
-  { label: 'Sim', value: 'sim' },
-  { label: 'Não', value: 'nao' },
-];
-
 export default function SolicitarBeneficio({ navigation }) {
   const [colaboradores, setColaboradores] = useState([]);
   const [selectedColaborador, setSelectedColaborador] = useState(null);
@@ -39,191 +35,202 @@ export default function SolicitarBeneficio({ navigation }) {
   const [selectedParcela, setSelectedParcela] = useState(null);
   const [descricao, setDescricao] = useState('');
   const [tipo, setTipo] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [errorLoad, setErrorLoad] = useState(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    (async () => {
       try {
-        const id = await AsyncStorage.getItem("id");
+        setLoading(true);
+        setErrorLoad(null);
 
-        if (id && token) {
-          const data = await buscarColabPorId(id);
-          console.log("Dados do colaborador:", data);
-          setColaborador(data);
+        const id = await AsyncStorage.getItem('id');
+        const token = await AsyncStorage.getItem('token');
+
+        if (!id || !token) {
+          setErrorLoad('Sessão inválida. Faça login novamente.');
+          setLoading(false);
+          return;
         }
-      } catch (error) {
-        console.log("Erro ao buscar colaborador:", error);
+
+        const resp = await buscarColabPorId(id, token);
+        const colab = resp?.data ?? resp ?? null;
+
+        if (!colab) {
+          setErrorLoad('Não foi possível carregar colaborador.');
+          setLoading(false);
+          return;
+        }
+
+        const titularLabel = colab.nome || colab.nomeCompleto || 'Colaborador';
+        const lista = [
+          { label: `${titularLabel} (Titular)`, value: `COLAB_${colab.id}` },
+          ...(Array.isArray(colab.dependentes) ? colab.dependentes : []).map((dep) => ({
+            label: dep.nome,
+            value: `DEP_${dep.id}`,
+          })),
+        ];
+
+        setColaboradores(lista);
+        if (lista.length > 0) setSelectedColaborador(lista[0].value);
+      } catch (e) {
+        console.log('Erro ao buscar colaborador:', e);
+        setErrorLoad('Erro ao buscar colaborador.');
+      } finally {
+        setLoading(false);
       }
-    };
-    fetchUser();
+    })();
   }, []);
 
-  const handleDescontarChange = (value) => {
-    setDescontarFolha(value);
-    if (value === 'nao') {
-      setSelectedParcela(null); // Limpa a parcela se escolher 'Não'
-    }
-  };
-
   const handleSolicitar = () => {
+    if (!selectedColaborador) return Alert.alert('Atenção', 'Selecione para quem será o benefício.');
+    if (!selectedBeneficio) return Alert.alert('Atenção', 'Selecione um benefício.');
+    if (!valor) return Alert.alert('Atenção', 'Informe o valor.');
+
+    const payload = {
+      para: selectedColaborador,
+      beneficio: selectedBeneficio,
+      valor: Number(valor.replace(',', '.')),
+      descontarEmFolha: tipo === 'Sim',
+      parcelas: tipo === 'Sim' ? selectedParcela : null,
+      descricao,
+    };
+
+    console.log('Payload solicitação:', payload);
     Alert.alert('Sucesso', 'Sua solicitação foi enviada!');
   };
 
   return (
     <Fundo>
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* Botão voltar */}
+        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>← Voltar</Text>
+        </Pressable>
+
         <TituloIcone
           titulo="Solicitar Benefício"
           icone={require("../images/icones/Money_g.png")}
         />
 
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Selecione para quem será o benefício</Text>
-          <Select
-            placeholder="Selecione para quem será"
-            data={colaboradores}
-            selectedValue={selectedColaborador}
-            onValueChange={setSelectedColaborador}
-          />
+        {loading ? (
+          <ActivityIndicator size="large" color="#047857" />
+        ) : errorLoad ? (
+          <Text style={{ color: '#B91C1C', textAlign: 'center' }}>{errorLoad}</Text>
+        ) : (
+          <>
+            <Text style={styles.label}>Selecione para quem será o benefício</Text>
+            <Select
+              placeholder="Selecione para quem será"
+              data={colaboradores}
+              selectedValue={selectedColaborador}
+              onValueChange={setSelectedColaborador}
+            />
 
-          <Text style={styles.label}>Selecione o benefício</Text>
-          <Select
-            placeholder="Selecione o benefício"
-            data={beneficiosMock}
-            selectedValue={selectedBeneficio}
-            onValueChange={setSelectedBeneficio}
-          />
+            <Text style={styles.label}>Selecione o benefício</Text>
+            <Select
+              placeholder="Selecione o benefício"
+              data={beneficiosMock}
+              selectedValue={selectedBeneficio}
+              onValueChange={setSelectedBeneficio}
+            />
 
-          <Text style={styles.label}>Valor</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite o valor"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="numeric"
-            value={valor}
-            onChangeText={setValor}
-          />
-          
-          <Text style={styles.label}>Descontar em folha?</Text>
+            <Text style={styles.label}>Valor</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Digite o valor"
+              keyboardType="numeric"
+              value={valor}
+              onChangeText={setValor}
+            />
 
-          <RadioGroup
-            value={tipo}
-            onChange={setTipo}
-            options={[
-            { label: "Sim", value: "Sim" },
-            { label: "Não", value: "Não" },
-            ]}
-           />
-          
-          {tipo === 'Sim' && (
-            <>
-              <Text style={styles.label}>Parcela</Text>
-              <Select
-                placeholder="Selecione a quantidade de parcela"
-                data={parcelasMock}
-                selectedValue={selectedParcela}
-                onValueChange={setSelectedParcela}
-              />
-            </>
-          )}
+            <Text style={styles.label}>Descontar em folha?</Text>
+            <RadioGroup
+              value={tipo}
+              onChange={setTipo}
+              options={[
+                { label: 'Sim', value: 'Sim' },
+                { label: 'Não', value: 'Não' },
+              ]}
+            />
 
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="Digite aqui a descrição"
-            placeholderTextColor="#9CA3AF"
-            multiline
-            value={descricao}
-            onChangeText={setDescricao}
-          />
+            {tipo === 'Sim' && (
+              <>
+                <Text style={styles.label}>Parcela</Text>
+                <Select
+                  placeholder="Selecione a quantidade de parcela"
+                  data={parcelasMock}
+                  selectedValue={selectedParcela}
+                  onValueChange={setSelectedParcela}
+                />
+              </>
+            )}
 
-          <Pressable style={styles.documentButton}>
-            <Image source={require('../images/icones/Envio_w.png')} style={styles.buttonIcon} />
-            <Text style={styles.documentButtonText}>Enviar documento</Text>
-          </Pressable>
+            <Text style={styles.label}>Descrição</Text>
+            <TextInput
+              style={styles.textArea}
+              placeholder="Digite aqui a descrição"
+              multiline
+              value={descricao}
+              onChangeText={setDescricao}
+            />
 
-          <Pressable style={styles.submitButton} onPress={handleSolicitar}>
-            <Text style={styles.submitButtonText}>SOLICITAR</Text>
-          </Pressable>
-        </View>
+            <Pressable style={styles.submitButton} onPress={handleSolicitar}>
+              <Text style={styles.submitButtonText}>SOLICITAR</Text>
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </Fundo>
   );
 }
 
-const colors = {
-  primary: '#0B684F',
-  secondary: '#049669',
-  background: '#FDFBF6',
-  textPrimary: '#374151',
-  textInput: '#1F2937',
-  border: '#E5E7EB',
-  placeholder: '#9CA3AF',
-};
-
 const styles = StyleSheet.create({
-  scrollContainer: {
+  container: {
     flexGrow: 1,
-    paddingBottom: 40,
-  },
-  formContainer: {
-    backgroundColor: colors.background,
-    marginHorizontal: 20,
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    padding: 16,
+    gap: 8,
   },
   label: {
+    fontSize: 18,
+    marginTop: 10,
+    marginBottom: 6,
+    color: "#000000",
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    padding: 8,
+    marginBottom: 16,
+  },
+  backButtonText: {
     fontSize: 16,
+    color: '#047857',
     fontWeight: '500',
-    color: colors.textPrimary,
-    marginBottom: 8,
-    marginTop: 16,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E5E7EB',
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 52,
     fontSize: 16,
-    color: colors.textInput,
+    color: '#1F2937',
   },
   textArea: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E5E7EB',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: colors.textInput,
+    color: '#1F2937',
     height: 120,
     textAlignVertical: 'top',
   },
-  documentButton: {
-    flexDirection: 'row',
-    backgroundColor: colors.secondary,
-    borderRadius: 14,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  documentButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
   submitButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#0B684F',
     borderRadius: 14,
     height: 52,
     alignItems: 'center',
@@ -234,10 +241,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  buttonIcon: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
   },
 });
