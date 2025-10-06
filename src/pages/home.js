@@ -56,26 +56,50 @@ export default function Home({ navigation }) {
             resizeMode="contain"
           />
 
-          {/* STATUS BOXES */}
-          <View style={styles.statusContainer}>
-            <View style={styles.statusBox}>
-              <Image source={require("../images/icones/Calendar_add_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
-              <Text style={styles.statusLabel}>CONSULTAS{"\n"}AGENDADAS</Text>
-              <Text style={styles.statusNumber}>02</Text>
-            </View>
+      {/* STATUS BOXES */}
+      <View style={styles.statusContainer}>
+        <Pressable
+          onPress={() => navigation.navigate('ConsultasAgendadas')}
+          android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+          style={({ pressed }) => [
+            styles.statusBox,
+            pressed && { opacity: 0.9 }
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Ver consultas agendadas"
+        >
+          <Image
+            source={require("../images/icones/Calendar_add_w.png")}
+            style={{ width: 17, height: 17, resizeMode: "contain" }}
+          />
+          <Text style={styles.statusLabel}>CONSULTAS{"\n"}AGENDADAS</Text>
+          <Text style={styles.statusNumber}>02</Text>
+        </Pressable>
+        
+        <Pressable
+          onPress={() => navigation.navigate('AssinaturasPendentes')}
+          android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+          style={({ pressed }) => [
+            styles.statusBox,
+            pressed && { opacity: 0.9 }
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Ver assinaturas pendentes"
+        >
+          <Image
+            source={require("../images/icones/File_dock_w.png")}
+            style={{ width: 17, height: 17, resizeMode: "contain" }}
+          />
+          <Text style={styles.statusLabel}>ASSINATURAS{"\n"}PENDENTES</Text>
+          <Text style={styles.statusNumber}>12</Text>
+        </Pressable>
 
-            <View style={styles.statusBox}>
-              <Image source={require("../images/icones/File_dock_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
-              <Text style={styles.statusLabel}>ASSINATURAS{"\n"}PENDENTES</Text>
-              <Text style={styles.statusNumber}>12</Text>
-            </View>
-
-            <View style={styles.statusBox}>
-              <Image source={require("../images/icones/File_dock_search_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
-              <Text style={styles.statusLabel}>BENEFÍCIOS{"\n"}EM ANÁLISE</Text>
-              <Text style={styles.statusNumber}>20</Text>
-            </View>
-          </View>
+        <View style={styles.statusBox}>
+          <Image source={require("../images/icones/File_dock_search_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
+          <Text style={styles.statusLabel}>BENEFÍCIOS{"\n"}EM ANÁLISE</Text>
+          <Text style={styles.statusNumber}>20</Text>
+        </View>
+      </View>
         </View>
         <View style={styles.calendarContainer}>
           <WeekPillStatic highlightToday={true} />
@@ -159,7 +183,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#fff",
     backgroundColor: colors.boxBg,
-    width: 76,
+    width: 81,
     borderRadius: 4,
     justifyContent: "center",
     paddingHorizontal: 4,
