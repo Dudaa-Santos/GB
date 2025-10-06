@@ -17,31 +17,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function LoginScreen({ navigation }) {
   const [matricula, setmatricula] = useState('');
   const [senha, setSenha] = useState('');
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState({ matricula: false, senha: false });
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Validação simples
   const validate = () => {
-    const e = {};
-    if (!matricula.trim()) e.matricula = 'Informe o código';
-    if (!senha.trim()) e.senha = 'Informe a senha';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    const hasMatricula = Boolean(matricula.trim());
+    const hasSenha = Boolean(senha.trim());
+    setErrors({
+      matricula: !hasMatricula,
+      senha: !hasSenha,
+    });
+    return hasMatricula && hasSenha;
   };
 
-  // Limpa os erros assim que o usuário começa a digitar
-  const handleInputChange = (setter, value) => {
+  const handleInputChange = (setter, field, value) => {
     setter(value);
-    setErrors({});
+    setErrors(prev => ({ ...prev, [field]: false }));
     setLoginError('');
   };
 
   const handleSubmit = async () => {
     try {
       setLoginError('');
-      setErrors({});
 
-      // Cenário 1: Erro de Validação (campos vazios)
       if (!validate()) {
         setLoginError('Preencha todos os campos!');
         return;
@@ -57,13 +57,9 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('Sucesso', 'Login efetuado!');
       navigation.replace('Home', { id: data.id });
     } catch (err) {
-      // Cenário 2: Erro de Autenticação (dados incorretos)
       setLoginError('Código ou senha inválidos.');
-      // Define o erro nos campos para que fiquem vermelhos
-      setErrors({
-        matricula: ' ',
-        senha: ' ',
-      });
+      // marca campos como "inválidos"
+      setErrors({ matricula: true, senha: true });
     } finally {
       setLoading(false);
     }
@@ -96,8 +92,10 @@ export default function LoginScreen({ navigation }) {
             label="Código"
             placeholder="Digite seu Código"
             value={matricula}
-            onChangeText={text => handleInputChange(setmatricula, text)}
-            errorText={errors.matricula}
+            onChangeText={text =>
+              handleInputChange(setmatricula, 'matricula', text)
+            }
+            errorText={errors.matricula ? ' ' : undefined} // ativa o estilo vermelho sem mostrar texto
           />
 
           <Input
@@ -106,8 +104,10 @@ export default function LoginScreen({ navigation }) {
             secureTextEntry
             showPasswordToggle
             value={senha}
-            onChangeText={text => handleInputChange(setSenha, text)}
-            errorText={errors.senha}
+            onChangeText={text =>
+              handleInputChange(setSenha, 'senha', text)
+            }
+            errorText={errors.senha ? ' ' : undefined}
           />
 
           {loginError ? (
@@ -145,16 +145,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
   },
   header: {
-    paddingTop: 56,
+    paddingTop: 70,
     paddingHorizontal: 24,
     backgroundColor: colors.brand,
     alignItems: 'center',
+    paddingBottom: 24,
   },
   logo: {
-    width: 130,
-    height: 130,
+    width: 140,
+    height: 140,
     resizeMode: 'contain',
-    marginBottom: 16,
+    marginTop: 20,
   },
   textBlock: {
     width: '100%',
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 4,
+    marginTop: 120,
   },
   sub: {
     color: colors.textInverse,
@@ -176,10 +178,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingVertical: 32,
+    paddingVertical: 60,
     paddingHorizontal: 24,
-    alignItems: 'center',
-    marginTop: 20,
+    alignItems: 'center'
   },
   title: {
     fontSize: 28,

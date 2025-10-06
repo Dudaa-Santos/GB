@@ -179,10 +179,6 @@ export default function SolicitarBeneficio({ navigation }) {
   return (
     <Fundo>
       <ScrollView contentContainerStyle={styles.container}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>← Voltar</Text>
-        </Pressable>
-
         <TituloIcone
           titulo="Solicitar Benefício"
           icone={require("../images/icones/Money_g.png")}
@@ -306,11 +302,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     padding: 8,
     marginBottom: 16,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#047857',
-    fontWeight: '500',
   },
   /* ========= TextArea com a mesma “cara” do Input ========= */
   textArea: {
