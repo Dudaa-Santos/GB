@@ -16,7 +16,7 @@ import CardHome from "../components/CardHome";
 import ButtonTextIcon from "../components/buttonTextIcon";
 import IconButton from "../components/iconButton";
 
-export default function HomeScreen({ route, navigation }) {
+export default function Home({ navigation }) {
   const [colaborador, setColaborador] = useState(null);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function HomeScreen({ route, navigation }) {
 
   return (
     <Fundo>
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         <Text style={styles.titulo}>
           Olá, {colaborador ? colaborador.data.nome : "Carregando..."}
         </Text>
