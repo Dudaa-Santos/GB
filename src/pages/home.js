@@ -104,7 +104,7 @@ export default function HomeScreen({ route, navigation }) {
           />
         </View>
         <View style={styles.buttonContainer}>
-          <ButtonTextIcon title="HISTÓRICO" icon={<Image source={require("../images/icones/history_w.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />} onPress={() => console.log("Histórico")} />
+          <ButtonTextIcon title="HISTÓRICO" icon={<Image source={require("../images/icones/history_w.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />} onPress={() => navigation.navigate("Historico")} />
           <IconButton icon={<Icon name="logout" size={24} color="#fff" />} onPress={handleLogout} />
         </View>
 
