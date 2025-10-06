@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Alert } from "react-native";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
 import ListParcela from "../components/listParcela";
@@ -48,7 +48,6 @@ export default function DetalheBeneficio({ route }) {
             const token = await AsyncStorage.getItem("token");
             if (!token) return;
             
-            // 1. Garantir que estamos pegando o nome do primeiro arquivo (como discutido anteriormente)
             const nomeArquivoParaBusca = documentos[0]?.nomeArquivoUnico; 
             
             if (!nomeArquivoParaBusca) return;
@@ -56,9 +55,6 @@ export default function DetalheBeneficio({ route }) {
             try {
                 const urlData = await documentoUrl(nomeArquivoParaBusca, token);
                 console.log("✅ URL do documento carregada com sucesso:", urlData);
-                
-                // 🚨 CORREÇÃO ESSENCIAL AQUI: Pegue o valor da chave 'data'
-                // O log confirma que a URL está em urlData.data
                 setDocumentoUrlState(urlData.data || ""); 
                 
             } catch (error) {
@@ -69,6 +65,94 @@ export default function DetalheBeneficio({ route }) {
 
         fetchDocumentoUrl();
     }, [documentos]);
+
+    // Função para visualizar documento
+    const handleVisualizar = async (documento) => {
+        try {
+            if (!documentoUrlState) {
+                Alert.alert("Erro", "URL do documento não disponível");
+                return;
+            }
+
+            console.log("👁️ Abrindo documento:", getNomeArquivo(documento));
+            console.log("🔗 URL:", documentoUrlState);
+
+            const supported = await Linking.canOpenURL(documentoUrlState);
+            if (supported) {
+                await Linking.openURL(documentoUrlState);
+            } else {
+                Alert.alert("Erro", "Não foi possível abrir este tipo de arquivo");
+            }
+        } catch (error) {
+            console.error("Erro ao visualizar documento:", error);
+            Alert.alert("Erro", "Não foi possível abrir o documento");
+        }
+    };
+
+    // Função para baixar/abrir documento (mesmo comportamento do visualizar)
+    const handleBaixar = async (documento) => {
+        try {
+            if (!documentoUrlState) {
+                Alert.alert("Erro", "URL do documento não disponível");
+                return;
+            }
+
+            console.log("📥 Abrindo documento para download:", getNomeArquivo(documento));
+            
+            const supported = await Linking.canOpenURL(documentoUrlState);
+            if (supported) {
+                await Linking.openURL(documentoUrlState);
+            } else {
+                Alert.alert("Erro", "Não foi possível abrir o documento");
+            }
+        } catch (error) {
+            console.error("Erro ao abrir documento:", error);
+            Alert.alert("Erro", "Não foi possível abrir o documento");
+        }
+    };
+
+    // Função para obter o nome do arquivo
+    const getNomeArquivo = (documento) => {
+        return documento.nomeArquivoOriginal || 
+               documento.nomeArquivo || 
+               documento.nome || 
+               documento.filename || 
+               `Documento_${documento.id || 'sem_id'}`;
+    };
+
+    // Função para obter a extensão do arquivo
+    const getExtensaoArquivo = (documento) => {
+        const nomeArquivo = getNomeArquivo(documento);
+        if (nomeArquivo.includes('.')) {
+            return nomeArquivo.split('.').pop().toUpperCase();
+        }
+        return 'DOC';
+    };
+
+    // Função para obter o ícone da extensão
+    const getIconeExtensao = (extensao) => {
+        const ext = extensao.toLowerCase();
+        switch (ext) {
+            case 'pdf': return '📄';
+            case 'doc':
+            case 'docx': return '📝';
+            case 'xls':
+            case 'xlsx': return '📊';
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif': return '🖼️';
+            case 'zip':
+            case 'rar': return '🗜️';
+            case 'txt': return '📃';
+            case 'mp4':
+            case 'avi':
+            case 'mov': return '🎥';
+            case 'mp3':
+            case 'wav': return '🎵';
+            default: return '📋';
+        }
+    };
 
     if (!solicitacao) {
         return (
@@ -197,43 +281,79 @@ export default function DetalheBeneficio({ route }) {
                     {/* Seção de Documentos */}
                     <View style={styles.documentosSection}>
                         <Text style={styles.sectionTitle}>Documentos</Text>
-                        <View style={styles.documentosCard}>
-                            {documentos && documentos.length > 0 ? (
-                                <>
-                                    <Text style={styles.documentosStatus}>
-                                        ✅ {documentos.length} documento(s) encontrado(s)
-                                    </Text>
-                                    {documentos.map((documento, index) => (
-                                        <View key={documento.id || index} style={styles.documentoItem}>
-                                            <Text style={styles.documentoNome}>
-                                                📄 {documento.nomeArquivoOriginal || `Documento ${index + 1}`}
-                                            </Text>
-                                            {documento.descricao && (
-                                                <Text style={styles.documentoDescricao}>
-                                                    {documento.descricao}
-                                                </Text>
-                                            )}
-                                        </View>
-                                    ))}
-
-                                    {/* Seção da URL do documento */}
-// ...
-                                    {documentoUrlState && (
-                                        <View style={styles.urlSection}>
-                                            <Text style={styles.urlLabel}>🔗 URL de Acesso:</Text>
-                                            <Text style={styles.urlText} numberOfLines={0}>
-                                                {documentoUrlState} {/* <--- EXIBIR DIRETAMENTE O ESTADO */}
-                                            </Text>
-                                        </View>
-                                    )}
-// ...
-                                </>
-                            ) : (
+                        {documentos && documentos.length > 0 ? (
+                            <>
                                 <Text style={styles.documentosStatus}>
-                                    📄 Busca de documentos realizada - Nenhum documento encontrado
+                                    ✅ {documentos.length} documento(s) encontrado(s)
                                 </Text>
-                            )}
-                        </View>
+                                
+                                {documentos.map((documento, index) => (
+                                    <View key={documento.id || index} style={styles.documentoCard}>
+                                        <View style={styles.documentoRow}>
+                                            {/* Ícone da extensão */}
+                                            <View style={styles.iconeExtensaoContainer}>
+                                                <Text style={styles.iconeExtensao}>
+                                                    {getIconeExtensao(getExtensaoArquivo(documento))}
+                                                </Text>
+                                            </View>
+
+                                            {/* Nome do arquivo */}
+                                            <View style={styles.nomeArquivoContainer}>
+                                                <Text style={styles.nomeArquivo}>
+                                                    {getNomeArquivo(documento)}
+                                                </Text>
+                                                {documento.tamanho && (
+                                                    <Text style={styles.tamanhoArquivo}>
+                                                        {documento.tamanho}
+                                                    </Text>
+                                                )}
+                                            </View>
+
+                                            {/* Ações - apenas ícones */}
+                                            <View style={styles.acoesContainer}>
+                                                <Pressable 
+                                                    style={[styles.iconeAcao, !documentoUrlState && styles.iconeAcaoDisabled]}
+                                                    onPress={() => handleVisualizar(documento)}
+                                                    disabled={!documentoUrlState}
+                                                >
+                                                    <Text style={styles.iconeAcaoText}>👁️</Text>
+                                                </Pressable>
+                                                
+                                                <Pressable 
+                                                    style={[styles.iconeAcao, !documentoUrlState && styles.iconeAcaoDisabled]}
+                                                    onPress={() => handleBaixar(documento)}
+                                                    disabled={!documentoUrlState}
+                                                >
+                                                    <Text style={styles.iconeAcaoText}>📥</Text>
+                                                </Pressable>
+                                            </View>
+                                        </View>
+
+                                        {/* Informações adicionais */}
+                                        {(documento.descricao || documento.dataUpload) && (
+                                            <View style={styles.infoAdicional}>
+                                                {documento.descricao && (
+                                                    <Text style={styles.descricaoArquivo}>
+                                                        {documento.descricao}
+                                                    </Text>
+                                                )}
+                                                {documento.dataUpload && (
+                                                    <Text style={styles.dataArquivo}>
+                                                        Enviado em: {formatDate(documento.dataUpload)}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        )}
+                                    </View>
+                                ))}
+                            </>
+                        ) : (
+                            <View style={styles.noDocumentosCard}>
+                                <Text style={styles.noDocumentosText}>
+                                    📄 Nenhum documento encontrado para esta solicitação
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Seção de Parcelamento */}
@@ -383,17 +503,24 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: "#1F2937",
         lineHeight: 22,
-        textAlign: "justify",
+        textAlign: "left",
         fontWeight: "400",
     },
-    // Estilos da seção de documentos
+    // Estilos da seção de documentos - LAYOUT LIMPO
     documentosSection: {
         marginBottom: 16,
     },
-    documentosCard: {
+    documentosStatus: {
+        fontSize: 15,
+        color: "#1F2937",
+        fontWeight: "600",
+        marginBottom: 12,
+    },
+    documentoCard: {
         backgroundColor: "#FFFFFF",
         borderRadius: 8,
         padding: 16,
+        marginBottom: 12,
         borderLeftWidth: 4,
         borderLeftColor: "#3B82F6",
         elevation: 2,
@@ -402,56 +529,81 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
     },
-    documentosStatus: {
-        fontSize: 15,
-        color: "#1F2937",
+    documentoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    iconeExtensaoContainer: {
+        marginRight: 12,
+    },
+    iconeExtensao: {
+        fontSize: 24,
+    },
+    nomeArquivoContainer: {
+        flex: 1,
+        marginRight: 12,
+    },
+    nomeArquivo: {
+        fontSize: 16,
         fontWeight: "600",
-        marginBottom: 8,
-    },
-    documentosInfo: {
-        fontSize: 14,
-        color: "#6B7280",
-        lineHeight: 18,
-    },
-    documentoItem: {
-        marginBottom: 8,
-        paddingVertical: 4,
-    },
-    documentoNome: {
-        fontSize: 14,
         color: "#1F2937",
-        fontWeight: "500",
         marginBottom: 2,
     },
-    documentoDescricao: {
+    tamanhoArquivo: {
         fontSize: 12,
         color: "#6B7280",
-        fontStyle: "italic",
     },
-    // Estilos para a seção da URL
-    urlSection: {
-        marginTop: 12,
-        padding: 12,
+    acoesContainer: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    iconeAcao: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: "#F3F4F6",
-        borderRadius: 6,
-        borderLeftWidth: 3,
-        borderLeftColor: "#10B981",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
     },
-    urlLabel: {
+    iconeAcaoDisabled: {
+        backgroundColor: "#E5E7EB",
+        opacity: 0.5,
+    },
+    iconeAcaoText: {
+        fontSize: 18,
+    },
+    infoAdicional: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: "#F3F4F6",
+    },
+    descricaoArquivo: {
         fontSize: 14,
-        fontWeight: "600",
-        color: "#374151",
+        color: "#6B7280",
+        fontStyle: "italic",
         marginBottom: 4,
     },
-    urlText: {
+    dataArquivo: {
         fontSize: 12,
-        color: "#1F2937",
-        backgroundColor: "#FFFFFF",
-        padding: 8,
-        borderRadius: 4,
+        color: "#9CA3AF",
+    },
+    noDocumentosCard: {
+        backgroundColor: "#F9FAFB",
+        borderRadius: 8,
+        padding: 20,
         borderWidth: 1,
-        borderColor: "#D1D5DB",
-        fontFamily: "monospace",
+        borderColor: "#E5E7EB",
+        borderStyle: "dashed",
+        alignItems: "center",
+    },
+    noDocumentosText: {
+        fontSize: 14,
+        color: "#6B7280",
+        textAlign: "center",
     },
     parcelamentoSection: {
         marginBottom: 16,
