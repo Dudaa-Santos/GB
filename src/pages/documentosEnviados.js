@@ -1,24 +1,27 @@
 import react from "react";
 import { View, Text, StyleSheet, Pressable, Image, ScrollView } from "react-native";
 import Fundo from "../components/fundo";
-import DocumentoCard from "../components/documentoCard";
+import CardStatus from "../components/cardStatus";
 
 export default function DocumentosEnviados() {
     return (
         <Fundo>
             <View style={styles.content}>
                 <ScrollView>
-                    <DocumentoCard
+                    <CardStatus
+                        tipo="documento"
                         titulo="Documento 1"
                         status="Pendente"
                         dataEnvio="01/01/2023"
                     />
-                    <DocumentoCard
+                    <CardStatus
+                        tipo="documento"
                         titulo="Documento 2"
                         status="Aprovado"
                         dataEnvio="02/01/2023"
                     />
-                    <DocumentoCard
+                    <CardStatus
+                        tipo="documento"
                         titulo="Documento 3"
                         status="Negado"
                         dataEnvio="03/01/2023"
