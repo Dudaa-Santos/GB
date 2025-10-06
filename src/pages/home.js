@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#fff",
     backgroundColor: colors.boxBg,
-    width: 76,
+    width: 81,
     borderRadius: 4,
     justifyContent: "center",
     paddingHorizontal: 4,

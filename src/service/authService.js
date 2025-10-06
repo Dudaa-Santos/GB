@@ -47,7 +47,7 @@ export const buscarEspecialidade = async (token) => {
   }
 };
 
-export const buscarMedicos = async ( token) => {
+export const buscarMedicos = async (token) => {
   try {
     const response = await httpClient.get(`/medico`, {
       headers: {
@@ -63,18 +63,64 @@ export const buscarMedicos = async ( token) => {
   }
 };
 
-export const buscarSolicitacoes = async (token) => {
+// Busca uma solicitação específica pelo ID
+export const buscarSolicitacoesporId = async (ColaboradorId, token) => {
   try {
-    const response = await httpClient.get(`/solicitacao`, {
+    const response = await httpClient.get(`/solicitacao/${ColaboradorId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    console.log("✅ Resposta da API (buscarSolicitacoesporId):", response.data);
     return response.data;
   } catch (error) {
+    console.error("❌ Erro na busca de solicitações por ID:", error);
+    console.error("❌ Status:", error.response?.status);
+    console.error("❌ Data:", error.response?.data);
+
     if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao buscar solicitações");
+      throw new Error(error.response.data.message || "Erro ao buscar solicitação");
     }
     throw new Error("Falha de conexão com o servidor");
   }
 };
+
+export const buscarDocumentoporId = async (SolicitacaoId, ColaboradorId, token) => {
+  try {
+    console.log("🔍 Buscando documentos para solicitação ID:", SolicitacaoId, "e colaborador ID:", ColaboradorId);
+
+    const response = await httpClient.get(`/documentos/${SolicitacaoId}/${ColaboradorId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("✅ Resposta da API (buscarDocumentoporId):", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Erro na busca de documentos por ID:", error);
+    console.error("❌ Status:", error.response?.status);
+    console.error("❌ Data:", error.response?.data);
+
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar documentos");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};
+
+export const documentoUrl = async(nomeArquivoUnico, token) => {
+  try{
+        const response = await httpClient.get(`/documentos/${nomeArquivoUnico}/url-acesso`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+  } catch (error) {
+    console.error("❌ Erro ao buscar URL do documento:", error);
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar URL do documento");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};  

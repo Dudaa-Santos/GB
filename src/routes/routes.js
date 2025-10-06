@@ -12,6 +12,7 @@ import ParcelamentoAberto from "../pages/parcelamentoAberto.js";
 import DocumentosEnviados from "../pages/documentosEnviados.js";
 import Historico from "../pages/historico.js";
 import ConsultasAgendadas from "../pages/consultasAgendadas.js";
+import DetalheBeneficio from "../pages/detalheBeneficio.js";
 
 const Stack = createStackNavigator();
 
@@ -56,6 +57,7 @@ export default function Routes() {
         <Stack.Screen name="DocumentosEnviados" component={DocumentosEnviados} />
         <Stack.Screen name="Historico" component={Historico} />
         <Stack.Screen name="ConsultasAgendadas" component={ConsultasAgendadas} />
+        <Stack.Screen name="DetalheBeneficio" component={DetalheBeneficio} />
       </Stack.Navigator>
     </NavigationContainer>
   );

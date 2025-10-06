@@ -2,12 +2,20 @@ import react from "react";
 import { View, Text, StyleSheet, Pressable, Image, ScrollView } from "react-native";
 import Fundo from "../components/fundo";
 import CardStatus from "../components/cardStatus";
+import TituloIcone from "../components/tituloIcone";
 
 export default function DocumentosEnviados() {
     return (
         <Fundo>
             <View style={styles.content}>
                 <ScrollView>
+                    <View style={{ marginBottom: 16 }}>
+                        <TituloIcone
+                            titulo="Documentos Enviados"
+                            icone={require("../images/icones/Folder_check_g.png")}
+                        />
+                    </View>
+
                     <CardStatus
                         tipo="documento"
                         titulo="Documento 1"
@@ -35,7 +43,6 @@ export default function DocumentosEnviados() {
 const styles = StyleSheet.create({
     content: {
         flex: 1,
-        padding: 16,
     },
     titulo: {
         fontSize: 24,
