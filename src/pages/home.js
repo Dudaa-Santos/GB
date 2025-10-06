@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Image,
-  ScrollView,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Image, ScrollView } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Fundo from "../components/fundo";
 import { buscarColabPorId } from "../service/authService";
@@ -48,7 +41,7 @@ export default function Home({ navigation }) {
   };
 
   return (
-    <Fundo>
+    <Fundo isHome={true}>
       <View style={styles.content}>
         <Text style={styles.titulo}>
           Olá, {colaborador ? colaborador.data.nome : "Carregando..."}
@@ -65,118 +58,57 @@ export default function Home({ navigation }) {
 
           {/* STATUS BOXES */}
           <View style={styles.statusContainer}>
-            {/* CONSULTAS AGENDADAS → botão */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.statusBox,
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={() => navigation.navigate("ConsultasAgendadas")}
-            >
-              <Image
-                source={require("../images/icones/Calendar_add_w.png")}
-                style={{ width: 17, height: 17, resizeMode: "contain" }}
-              />
-              <Text style={styles.statusLabel}>
-                CONSULTAS{"\n"}AGENDADAS
-              </Text>
-              <Text style={styles.statusNumber}>02</Text>
-            </Pressable>
-
-            {/* ASSINATURAS PENDENTES */}
             <View style={styles.statusBox}>
-              <Image
-                source={require("../images/icones/File_dock_w.png")}
-                style={{ width: 17, height: 17, resizeMode: "contain" }}
-              />
-              <Text style={styles.statusLabel}>
-                ASSINATURAS{"\n"}PENDENTES
-              </Text>
+              <Image source={require("../images/icones/Calendar_add_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
+              <Text style={styles.statusLabel}>CONSULTAS{"\n"}AGENDADAS</Text>
+              <Text style={styles.statusNumber}>02</Text>
+            </View>
+
+            <View style={styles.statusBox}>
+              <Image source={require("../images/icones/File_dock_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
+              <Text style={styles.statusLabel}>ASSINATURAS{"\n"}PENDENTES</Text>
               <Text style={styles.statusNumber}>12</Text>
             </View>
 
-            {/* BENEFÍCIOS EM ANÁLISE */}
             <View style={styles.statusBox}>
-              <Image
-                source={require("../images/icones/File_dock_search_w.png")}
-                style={{ width: 17, height: 17, resizeMode: "contain" }}
-              />
-              <Text style={styles.statusLabel}>
-                BENEFÍCIOS{"\n"}EM ANÁLISE
-              </Text>
+              <Image source={require("../images/icones/File_dock_search_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
+              <Text style={styles.statusLabel}>BENEFÍCIOS{"\n"}EM ANÁLISE</Text>
               <Text style={styles.statusNumber}>20</Text>
             </View>
           </View>
         </View>
-
         <View style={styles.calendarContainer}>
           <WeekPillStatic highlightToday={true} />
         </View>
-
         <Text style={styles.subtitulo}>O que você deseja fazer?</Text>
-
-        {/* CARDS DE AÇÃO */}
         <View style={styles.cardContainer}>
           <CardHome
             title="Agendar Consulta"
-            icon={
-              <Image
-                source={require("../images/icones/Calendar_add_g.png")}
-                style={{ width: 26, height: 26, resizeMode: "contain" }}
-              />
-            }
+            icon={<Image source={require("../images/icones/Calendar_add_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => navigation.navigate("AgendarConsulta")}
           />
           <CardHome
             title="Solicitar Benefício"
-            icon={
-              <Image
-                source={require("../images/icones/Money_g.png")}
-                style={{ width: 26, height: 26, resizeMode: "contain" }}
-              />
-            }
+            icon={<Image source={require("../images/icones/Money_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => navigation.navigate("SolicitarBeneficio")}
           />
           <CardHome
             title="Parcelamento Aberto"
-            icon={
-              <Image
-                source={require("../images/icones/Wallet_alt_g.png")}
-                style={{ width: 26, height: 26, resizeMode: "contain" }}
-              />
-            }
+            icon={<Image source={require("../images/icones/Wallet_alt_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => navigation.navigate("ParcelamentoAberto")}
           />
           <CardHome
             title="Documentos Enviados"
-            icon={
-              <Image
-                source={require("../images/icones/Folder_check_g.png")}
-                style={{ width: 26, height: 26, resizeMode: "contain" }}
-              />
-            }
+            icon={<Image source={require("../images/icones/Folder_check_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
             onPress={() => navigation.navigate("DocumentosEnviados")}
           />
         </View>
-
-        {/* BOTÕES INFERIORES */}
         <View style={styles.buttonContainer}>
-          <ButtonTextIcon
-            title="HISTÓRICO"
-            icon={
-              <Image
-                source={require("../images/icones/history_w.png")}
-                style={{ width: 26, height: 26, resizeMode: "contain" }}
-              />
-            }
-            onPress={() => navigation.navigate("Historico")}
-          />
-          <IconButton
-            icon={<Icon name="logout" size={24} color="#fff" />}
-            onPress={handleLogout}
-          />
+          <ButtonTextIcon title="HISTÓRICO" icon={<Image source={require("../images/icones/history_w.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />} onPress={() => navigation.navigate("Historico")} />
+          <IconButton icon={<Icon name="logout" size={24} color="#fff" />} onPress={handleLogout} />
         </View>
-      </ScrollView>
+
+      </View>
     </Fundo>
   );
 }
@@ -190,10 +122,9 @@ const colors = {
 
 const styles = StyleSheet.create({
   content: {
-    flexGrow: 1,
+    flex: 1,
     alignItems: "flex-start",
     justifyContent: "flex-start",
-    paddingBottom: 40,
   },
   titulo: {
     fontSize: 22,
@@ -216,10 +147,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingRight: 12,
-  },
-  prancheta: {
-    width: 100,
-    height: 100,
+
   },
   statusContainer: {
     flex: 1,
@@ -234,14 +162,12 @@ const styles = StyleSheet.create({
     width: 76,
     borderRadius: 4,
     justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: 4,
     paddingVertical: 6,
   },
   statusLabel: {
     color: "#fff",
     fontSize: 10,
-    textAlign: "center",
   },
   statusNumber: {
     color: "#fff",
@@ -285,3 +211,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
+ 
