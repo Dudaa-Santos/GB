@@ -142,13 +142,47 @@ export const disponibilidadeMedico = async (MedicoId, token, date) => {
 export const agendarConsulta = async (data, token) => {
   try {
     const response = await httpClient.post(`/agendamento`, data, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
     return response.data;
   } catch (error) {
     console.error("❌ Erro ao agendar consulta:", error);
+
+    if (error?.response) {
+      console.error("↪ status:", error.response.status);
+      console.error("↪ data:", error.response.data);
+
+      const msg =
+        (typeof error.response.data === "string" && error.response.data) ||
+        error.response.data?.message ||
+        error.response.data?.error ||
+        (Array.isArray(error.response.data?.errors) && error.response.data.errors.join(", ")) ||
+        "Erro ao agendar consulta";
+
+      throw new Error(msg);
+    }
+
+    if (error?.request) {
+      throw new Error("Sem resposta do servidor. Verifique a conexão.");
+    }
+
+    throw new Error(error?.message || "Falha de conexão com o servidor");
+  }
+};
+
+export const buscarAgendamentoPorId = async (ColaboradorId, token) => {
+  try {
+    const response = await httpClient.get(`/agendamento/${ColaboradorId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Erro ao buscar agendamento por ID:", error);
     if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao agendar consulta");
+      throw new Error(error.response.data.message || "Erro ao buscar agendamento");
     }
     throw new Error("Falha de conexão com o servidor");
   }

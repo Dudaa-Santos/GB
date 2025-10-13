@@ -5,16 +5,20 @@ import TituloIcone from "../components/tituloIcone";
 import TabSwitch from "../components/tabSwitch";
 import CardStatus from "../components/cardStatus";
 import { useNavigation } from "@react-navigation/native";
-import { buscarSolicitacoesporId } from "../service/authService";
+import { buscarSolicitacoesporId, buscarAgendamentoPorId } from "../service/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Historico() {
     const [selectedTab, setSelectedTab] = useState("historicoConsulta");
     const navigation = useNavigation();
     const [solicitacoes, setSolicitacoes] = useState([]);
+    const [consultas, setConsultas] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [loadingConsultas, setLoadingConsultas] = useState(false);
+    const [errorConsultas, setErrorConsultas] = useState(null);
 
+    // Função para buscar solicitações (benefícios)
     const fetchSolicitacoes = async () => {
         try {
             console.log("🚀 Iniciando fetchSolicitacoes...");
@@ -23,9 +27,6 @@ export default function Historico() {
             
             const token = await AsyncStorage.getItem("token");
             const id = await AsyncStorage.getItem("id");
-            
-            console.log("🔑 Token obtido:", token ? "Token existe" : "Token não encontrado");
-            console.log("👤 ID do colaborador:", id);
             
             if (!token) {
                 setError("Token não encontrado. Faça login novamente.");
@@ -37,61 +38,142 @@ export default function Historico() {
                 return;
             }
             
-            console.log("📞 Chamando buscarSolicitacoesporId com ID:", id);
             const response = await buscarSolicitacoesporId(id, token);
-            
-            console.log("📥 Resposta completa:", response);
             
             // Extrai os dados da estrutura da API
             let solicitacoesArray = [];
             if (response && response.success && response.data) {
                 solicitacoesArray = response.data;
-                console.log("✅ Dados extraídos com sucesso:", solicitacoesArray);
             } else if (Array.isArray(response)) {
                 solicitacoesArray = response;
-                console.log("✅ Resposta é array direto:", solicitacoesArray);
             } else if (response && Array.isArray(response.solicitacoes)) {
                 solicitacoesArray = response.solicitacoes;
-                console.log("✅ Dados em response.solicitacoes:", solicitacoesArray);
             } else if (response && response.data && Array.isArray(response.data)) {
                 solicitacoesArray = response.data;
-                console.log("✅ Dados em response.data:", solicitacoesArray);
             } else {
-                console.log("⚠️ Estrutura de resposta inesperada:", response);
                 solicitacoesArray = [];
             }
             
             setSolicitacoes(Array.isArray(solicitacoesArray) ? solicitacoesArray : []);
-            console.log("✅ Solicitações definidas no state:", solicitacoesArray.length, "itens");
             
         } catch (error) {
-            console.error("❌ Erro completo:", error);
-            console.error("❌ Mensagem do erro:", error.message);
+            console.error("❌ Erro ao buscar solicitações:", error);
             setError(`Erro ao carregar solicitações: ${error.message}`);
         } finally {
             setLoading(false);
-            console.log("🏁 fetchSolicitacoes finalizado");
         }
     };
 
-    // Carregar solicitações quando o componente montar
+    // Função para obter nome do paciente da consulta
+    const getPacienteNome = (consulta) => {
+        console.log("🔍 Debug getPacienteNome:", consulta);
+        
+        // Verifica se é dependente
+        if (consulta.dependente && consulta.dependente.nome) {
+            return consulta.dependente.nome;
+        }
+        
+        // Se não tem dependente, é o colaborador
+        if (consulta.colaborador && consulta.colaborador.nome) {
+            return consulta.colaborador.nome;
+        }
+        
+        console.log("⚠️ Nome do paciente não encontrado para:", consulta);
+        return "Paciente não informado";
+    };
+
+    // Função para obter nome do médico
+    const getMedicoNome = (consulta) => {
+        console.log("🔍 Debug getMedicoNome:", consulta);
+        
+        if (consulta.medico && consulta.medico.nome) {
+            return consulta.medico.nome;
+        }
+        
+        console.log("⚠️ Nome do médico não encontrado para:", consulta);
+        return "Médico não informado";
+    };
+
+    // Função para determinar o tipo de paciente
+    const getTipoPaciente = (consulta) => {
+        if (consulta.dependente && consulta.dependente.nome) {
+            return "Dependente";
+        }
+        if (consulta.colaborador && consulta.colaborador.nome) {
+            return "Colaborador";
+        }
+        return "Não informado";
+    };
+
+    // Função para buscar consultas (agendamentos)
+    const fetchConsultas = async () => {
+        try {
+            console.log("🚀 Iniciando fetchConsultas...");
+            setLoadingConsultas(true);
+            setErrorConsultas(null);
+            
+            const token = await AsyncStorage.getItem("token");
+            const id = await AsyncStorage.getItem("id");
+            
+            if (!token) {
+                setErrorConsultas("Token não encontrado. Faça login novamente.");
+                return;
+            }
+
+            if (!id) {
+                setErrorConsultas("ID do colaborador não encontrado. Faça login novamente.");
+                return;
+            }
+            
+            console.log("📞 Chamando buscarAgendamentoPorId com ID:", id);
+            const response = await buscarAgendamentoPorId(id, token);
+            
+            console.log("📥 Resposta completa de consultas:", JSON.stringify(response, null, 2));
+            
+            // A resposta deve ser um array direto baseado na estrutura fornecida
+            let consultasArray = [];
+            if (Array.isArray(response)) {
+                consultasArray = response;
+            } else if (response && Array.isArray(response.data)) {
+                consultasArray = response.data;
+            } else if (response && response.success && Array.isArray(response.data)) {
+                consultasArray = response.data;
+            } else {
+                console.log("⚠️ Estrutura de resposta não reconhecida:", response);
+                consultasArray = [];
+            }
+            
+            console.log("📊 Consultas processadas:", consultasArray);
+            
+            // Log de cada consulta individual
+            consultasArray.forEach((consulta, index) => {
+                console.log(`📝 Consulta ${index + 1}:`, JSON.stringify(consulta, null, 2));
+            });
+            
+            setConsultas(consultasArray);
+            
+        } catch (error) {
+            console.error("❌ Erro ao buscar consultas:", error);
+            setErrorConsultas(`Erro ao carregar consultas: ${error.message}`);
+        } finally {
+            setLoadingConsultas(false);
+        }
+    };
+
+    // Carregar dados quando o componente montar
     useEffect(() => {
         fetchSolicitacoes();
+        fetchConsultas();
     }, []);
 
-    // Recarregar quando a aba de benefícios for selecionada
+    // Recarregar quando trocar de aba
     useEffect(() => {
         if (selectedTab === "historicoBeneficios") {
             fetchSolicitacoes();
+        } else if (selectedTab === "historicoConsulta") {
+            fetchConsultas();
         }
     }, [selectedTab]);
-
-    // Dados simulados para consultas (manter até ter API específica)
-    const consultas = [
-        { id: '1', paciente: 'João Silva', especialidade: 'Cardiologia', dataConsulta: '10/08/2023', statusConsulta: 'Realizada' },
-        { id: '2', paciente: 'Maria Oliveira', especialidade: 'Dermatologia', dataConsulta: '15/08/2023', statusConsulta: 'Cancelada' },
-        { id: '3', paciente: 'Carlos Souza', especialidade: 'Ortopedia', dataConsulta: '20/08/2023', statusConsulta: 'Realizada' },
-    ];
 
     // Função para formatar data
     const formatDate = (dateString) => {
@@ -100,7 +182,21 @@ export default function Historico() {
             const date = new Date(dateString);
             return date.toLocaleDateString('pt-BR');
         } catch (error) {
-            return dateString; // Retorna a string original se não conseguir formatar
+            return dateString;
+        }
+    };
+
+    // Função para formatar data e hora da consulta
+    const formatDateTime = (dateString) => {
+        if (!dateString) return "Data não informada";
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR') + ' • ' + date.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        } catch (error) {
+            return dateString;
         }
     };
 
@@ -115,12 +211,9 @@ export default function Historico() {
         return "Benefício";
     };
 
-    // Função para navegar para detalhes do benefício - CORRIGIDA
+    // Função para navegar para detalhes do benefício
     const handleBeneficioPress = (solicitacao) => {
         try {
-            console.log("📋 Navegando para detalhes do benefício:", solicitacao);
-            
-            // Cria um objeto serializable com apenas as propriedades necessárias
             const solicitacaoSerializavel = {
                 id: solicitacao.id,
                 status: solicitacao.status,
@@ -149,7 +242,6 @@ export default function Historico() {
             });
         } catch (error) {
             console.error("Erro ao navegar:", error);
-            // Fallback: tentar com menos dados
             navigation.navigate("DetalheBeneficio", { 
                 solicitacao: {
                     id: solicitacao.id,
@@ -209,6 +301,64 @@ export default function Historico() {
         );
     };
 
+    // Renderizar seção de consultas
+    const renderConsultas = () => {
+        if (loadingConsultas) {
+            return (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#065F46" />
+                    <Text style={styles.loadingText}>Carregando consultas...</Text>
+                </View>
+            );
+        }
+
+        if (errorConsultas) {
+            return (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{errorConsultas}</Text>
+                    <Text 
+                        style={styles.retryText} 
+                        onPress={fetchConsultas}
+                    >
+                        Tentar novamente
+                    </Text>
+                </View>
+            );
+        }
+
+        if (!consultas || consultas.length === 0) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
+                </View>
+            );
+        }
+
+        return (
+            <View>
+                {consultas.map((consulta, index) => {
+                    console.log(`🎯 Renderizando consulta ${index + 1}:`, consulta);
+                    
+                    const paciente = getPacienteNome(consulta);
+                    const medico = getMedicoNome(consulta);
+                    const tipoPaciente = getTipoPaciente(consulta);
+                    
+                    return (
+                        <CardStatus
+                            key={consulta.idAgendamento || index}
+                            tipo="consulta"
+                            titulo={`${paciente}`}
+                            status={consulta.status}
+                            dataEnvio={formatDateTime(consulta.horario)}
+                            medico={medico}
+                            tipoPaciente={tipoPaciente}
+                        />
+                    );
+                })}
+            </View>
+        );
+    };
+
     return (
         <Fundo>
             <View style={styles.container}>
@@ -226,19 +376,7 @@ export default function Historico() {
                 />
 
                 {selectedTab === "historicoConsulta" ? (
-                    <View>
-                        {consultas.map((consulta) => (
-                            <CardStatus
-                                key={consulta.id}
-                                tipo="consulta"
-                                titulo={consulta.paciente}
-                                status={consulta.statusConsulta}
-                                dataEnvio={consulta.dataConsulta}
-                                paciente={consulta.paciente}
-                                especialidade={consulta.especialidade}
-                            />
-                        ))}
-                    </View>
+                    renderConsultas()
                 ) : (
                     renderBeneficios()
                 )}
