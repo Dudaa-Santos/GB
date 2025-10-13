@@ -8,12 +8,14 @@ function getStatusColor(status) {
     const statusLower = status.toLowerCase();
 
     if (statusLower.includes("pendente")) return "#E5C233";
-    if (statusLower.includes("aprovado")) return "#5C8F0E";
+    if (statusLower.includes("aprovado") || statusLower.includes("APROVADO")) return "#5C8F0E";
     if (statusLower.includes("negado")) return "#DC2626";
     if (statusLower.includes("realizada")) return "#5C8F0E";
+    if (statusLower.includes("agendado")) return "#065F46";
+    
     if (statusLower.includes("cancelado")) return "#DC2626";
 
-    return "#6B7280";
+    return "#065F46";
 }
 
 function getBorderColor(status) {
@@ -26,7 +28,7 @@ export default function CardStatus({
     dataEnvio, 
     tipo = "documento", // "documento", "beneficio", "consulta"
     paciente = null, // Para consultas
-    especialidade = null, // Para consultas
+    medico = null, // Para consultas - mudança aqui
     navigateTo = null, // Rota para navegação (benefícios)
     onPress = null // Callback personalizado
 }) {
@@ -56,8 +58,8 @@ export default function CardStatus({
                             {paciente && (
                                 <Text style={styles.pacienteText}>Paciente: {paciente}</Text>
                             )}
-                            {especialidade && (
-                                <Text style={styles.especialidadeText}>Especialidade: {especialidade}</Text>
+                            {medico && (
+                                <Text style={styles.medicoText}>Dr(a). {medico}</Text>
                             )}
                         </View>
                     )}
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
         color: "#4B5563",
         marginBottom: 2,
     },
-    especialidadeText: {
+    medicoText: {
         fontSize: 14,
         color: "#6B7280",
         fontStyle: "italic",
