@@ -6,8 +6,10 @@ import TituloIcone from "../components/tituloIcone";
 import { buscarSolicitacoesporId, buscarDocumentoporId, documentoUrl } from "../service/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Linking } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function DocumentosEnviados() {
+    const navigation = useNavigation();
     const [documentos, setDocumentos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -68,14 +70,47 @@ export default function DocumentosEnviados() {
                         documentosDaSolicitacao = documentosResponse.data;
                     }
                     
-                    // Adicionar informações da solicitação a cada documento
+                    // Adicionar informações COMPLETAS da solicitação a cada documento
                     const documentosComInfo = documentosDaSolicitacao.map(doc => ({
                         ...doc,
                         solicitacao: {
+                            // IDs necessários
                             id: solicitacao.id,
+                            
+                            // Status e datas
                             status: solicitacao.status,
-                            beneficio: solicitacao.beneficio,
-                            dataSolicitacao: solicitacao.dataSolicitacao
+                            dataSolicitacao: solicitacao.dataSolicitacao,
+                            
+                            // Valores financeiros
+                            valorTotal: solicitacao.valorTotal,
+                            qtdeParcelas: solicitacao.qtdeParcelas,
+                            tipoPagamento: solicitacao.tipoPagamento,
+                            desconto: solicitacao.desconto,
+                            
+                            // Descrição
+                            descricao: solicitacao.descricao,
+                            
+                            // Benefício
+                            beneficio: solicitacao.beneficio ? {
+                                nome: solicitacao.beneficio.nome,
+                                id: solicitacao.beneficio.id,
+                                descricao: solicitacao.beneficio.descricao
+                            } : null,
+                            
+                            // Colaborador
+                            colaborador: solicitacao.colaborador ? {
+                                nome: solicitacao.colaborador.nome,
+                                matricula: solicitacao.colaborador.matricula,
+                                email: solicitacao.colaborador.email,
+                                id: solicitacao.colaborador.id
+                            } : null,
+                            
+                            // Dependente (se houver)
+                            dependente: solicitacao.dependente ? {
+                                nome: solicitacao.dependente.nome,
+                                grauParentesco: solicitacao.dependente.grauParentesco,
+                                id: solicitacao.dependente.id
+                            } : null
                         }
                     }));
                     
@@ -146,7 +181,44 @@ export default function DocumentosEnviados() {
         return "ENVIADO";
     };
 
-    // Função para abrir documento
+    // Função para navegar para o detalhe da solicitação
+    const handleNavigateToDetail = (documento) => {
+        if (!documento.solicitacao) {
+            Alert.alert("Erro", "Informações da solicitação não disponíveis.");
+            return;
+        }
+
+        console.log("🔗 Navegando para DetalheBeneficio com solicitação:", documento.solicitacao);
+
+        // Navegar para a tela de detalhe passando a solicitação completa
+        navigation.navigate("DetalheBeneficio", { 
+            solicitacao: documento.solicitacao
+        });
+    };
+
+    // Função para abrir documento (alternativa - menu de opções)
+    const showDocumentOptions = (documento) => {
+        Alert.alert(
+            "Opções do Documento",
+            `${getNomeDocumento(documento)}`,
+            [
+                {
+                    text: "Ver Detalhes da Solicitação",
+                    onPress: () => handleNavigateToDetail(documento)
+                },
+                {
+                    text: "Visualizar Documento",
+                    onPress: () => handleAbrirDocumento(documento)
+                },
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                }
+            ]
+        );
+    };
+
+    // Função para abrir documento (mantida para compatibilidade)
     const handleAbrirDocumento = async (documento) => {
         try {
             console.log("🔍 Tentando abrir documento:", documento);
@@ -244,7 +316,8 @@ export default function DocumentosEnviados() {
                     return (
                         <Pressable
                             key={documento.id || index}
-                            onPress={() => handleAbrirDocumento(documento)}
+                            onPress={() => handleNavigateToDetail(documento)}
+                            onLongPress={() => showDocumentOptions(documento)}
                             style={({ pressed }) => [
                                 pressed && styles.pressedCard
                             ]}
@@ -261,7 +334,10 @@ export default function DocumentosEnviados() {
 
                 <View style={styles.infoContainer}>
                     <Text style={styles.infoText}>
-                        💡 Toque em um documento para visualizá-lo
+                        💡 Toque em um documento para ver detalhes da solicitação
+                    </Text>
+                    <Text style={styles.infoSubText}>
+                        Segure pressionado para mais opções
                     </Text>
                 </View>
             </View>
@@ -323,6 +399,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#92400E',
         textAlign: 'center',
+        marginBottom: 4,
+    },
+    infoSubText: {
+        fontSize: 12,
+        color: '#92400E',
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
     loadingContainer: {
         flex: 1,
