@@ -124,3 +124,33 @@ export const documentoUrl = async(nomeArquivoUnico, token) => {
     throw new Error("Falha de conexão com o servidor");
   }
 };  
+
+export const disponibilidadeMedico = async (MedicoId, token, date) => {
+  try {
+    const response = await httpClient.get(`/medico/${MedicoId}/disponibilidade?dia=${date}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Erro ao buscar disponibilidade do médico:", error);
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar disponibilidade do médico");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};
+
+export const agendarConsulta = async (data, token) => {
+  try {
+    const response = await httpClient.post(`/agendamento`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Erro ao agendar consulta:", error);
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao agendar consulta");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};

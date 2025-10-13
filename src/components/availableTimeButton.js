@@ -1,16 +1,15 @@
 import React from "react";
 import { Text, Pressable, StyleSheet } from "react-native";
 
-export default function AvailableTimeButton({ 
-  onPress, 
-  title, 
-  style, 
+export default function AvailableTimeButton({
+  onPress,
+  title,
+  style,
   textStyle,
   isSelected = false,
   isBlocked = false,
-  isBooked = false
+  isBooked = false,
 }) {
-  
   const handlePress = () => {
     if (isBlocked || isBooked) return;
     onPress && onPress();
@@ -30,18 +29,20 @@ export default function AvailableTimeButton({
     return styles.text;
   };
 
-  return (
-    <Pressable 
-      onPress={handlePress} 
-      style={[getButtonStyle(), style]}
-      disabled={isBlocked || isBooked}
-    >
-      <Text style={[getTextStyle(), textStyle]}>
-        {title}
-        {isBooked && " (Ocupado)"}
-      </Text>
-    </Pressable>
-  );
+return (
+  <Pressable
+    onPress={handlePress}
+    style={[getButtonStyle(), style]}
+    disabled={isBlocked || isBooked}
+    pointerEvents={(isBlocked || isBooked) ? "none" : "auto"}  // <==
+    accessibilityState={{ disabled: isBlocked || isBooked }}
+  >
+    <Text style={[getTextStyle(), textStyle]}>
+      {title}
+    </Text>
+  </Pressable>
+);
+
 }
 
 const styles = StyleSheet.create({
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  
+
   // Estado selecionado
   buttonSelected: {
     backgroundColor: "#047857",
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-  
+
   // Estado bloqueado (indisponível)
   buttonBlocked: {
     backgroundColor: "#F3F4F6",
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  
+
   // Estado ocupado (já agendado)
   buttonBooked: {
     backgroundColor: "#FEE2E2",
