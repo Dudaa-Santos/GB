@@ -18,15 +18,9 @@ import Fundo from '../components/fundo';
 import TituloIcone from '../components/tituloIcone';
 import Select from '../components/select';
 import RadioGroup from '../components/radioGroup';
-import { buscarColabPorId } from '../service/authService';
+import { buscarColabPorId, buscarBeneficios, criarSolicitacao, uploadDoc } from '../service/authService';
 import Input from '../components/input';
 import SubmitButton from '../components/submitButton';
-
-const beneficiosMock = [
-  { label: 'Plano de Saúde', value: 'plano_saude' },
-  { label: 'Vale Alimentação', value: 'vale_alimentacao' },
-  { label: 'Auxílio Creche', value: 'auxilio_creche' },
-];
 
 const parcelasMock = [
   { label: '1x', value: 1 }, { label: '2x', value: 2 }, { label: '3x', value: 3 },
@@ -36,18 +30,32 @@ const parcelasMock = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPTED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
 
-export default function SolicitarBeneficio({ navigation }) {
+const paymentMap = {
+  'Sim': 'DESCONTADO_FOLHA',
+  'Não': 'PAGAMENTO_PROPRIO',
+  'Doação': 'DOACAO',
+};
+
+export default function SolicitarBeneficio() {
   const [colaboradores, setColaboradores] = useState([]);
   const [selectedColaborador, setSelectedColaborador] = useState(null);
+
+  const [beneficios, setBeneficios] = useState([]);
   const [selectedBeneficio, setSelectedBeneficio] = useState(null);
+
   const [valor, setValor] = useState('');
   const [selectedParcela, setSelectedParcela] = useState(null);
   const [descricao, setDescricao] = useState('');
   const [descricaoFocused, setDescricaoFocused] = useState(false);
-  const [tipo, setTipo] = useState('');
+
+  const [tipo, setTipo] = useState(''); // 'Sim' | 'Não' | 'Doação'
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [errorLoad, setErrorLoad] = useState(null);
   const [documento, setDocumento] = useState(null);
+
+  const [titularId, setTitularId] = useState(null);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -56,20 +64,24 @@ export default function SolicitarBeneficio({ navigation }) {
         setErrorLoad(null);
 
         const id = await AsyncStorage.getItem('id');
-        const token = await AsyncStorage.getItem('token');
+        const tk = await AsyncStorage.getItem('token');
+        setToken(tk);
 
-        if (!id || !token) {
+        if (!id || !tk) {
           setErrorLoad('Sessão inválida. Faça login novamente.');
           return;
         }
 
-        const resp = await buscarColabPorId(id, token);
+        // 1) Buscar titular e dependentes
+        const resp = await buscarColabPorId(id, tk);
         const colab = resp?.data ?? resp ?? null;
 
-        if (!colab) {
+        if (!colab?.id) {
           setErrorLoad('Não foi possível carregar colaborador.');
           return;
         }
+
+        setTitularId(colab.id);
 
         const titularLabel = colab.nome || colab.nomeCompleto || 'Colaborador';
         const lista = [
@@ -81,8 +93,18 @@ export default function SolicitarBeneficio({ navigation }) {
         ];
 
         setColaboradores(lista);
-        if (lista.length > 0) setSelectedColaborador(lista[0].value);
+        setSelectedColaborador(null);
+
+        // 2) Buscar benefícios
+        const bResp = await buscarBeneficios(tk);
+        const raw = bResp?.data ?? bResp ?? [];
+        const listBenef = (Array.isArray(raw) ? raw : []).map((b) => ({
+          label: b.nome || b.titulo || b.descricao || 'Benefício',
+          value: b.id,
+        }));
+        setBeneficios(listBenef);
       } catch (e) {
+        setErrorLoad('Falha ao carregar dados iniciais.');
       } finally {
         setLoading(false);
       }
@@ -134,28 +156,77 @@ export default function SolicitarBeneficio({ navigation }) {
 
   const handleRemoverDocumento = () => setDocumento(null);
 
-  const handleSolicitar = () => {
+  const handleSolicitar = async () => {
+    if (submitting) return;
+
+    // ===== validações obrigatórias =====
     if (!selectedColaborador) return Alert.alert('Atenção', 'Selecione para quem será o benefício.');
-    if (!selectedBeneficio) return Alert.alert('Atenção', 'Selecione um benefício.');
-    if (!valor) return Alert.alert('Atenção', 'Informe o valor.');
+    if (!selectedBeneficio)   return Alert.alert('Atenção', 'Selecione um benefício.');
+    if (!valor)               return Alert.alert('Atenção', 'Informe o valor.');
+    if (!tipo)                return Alert.alert('Atenção', 'Selecione o tipo de pagamento.');
+    if (tipo === 'Sim' && !selectedParcela) {
+      return Alert.alert('Atenção', 'Selecione a quantidade de parcelas.');
+    }
+    if (!descricao.trim())    return Alert.alert('Atenção', 'Informe a descrição.');
+    if (!documento)           return Alert.alert('Documento obrigatório', 'Envie o documento para continuar.');
+    if (!titularId)           return Alert.alert('Erro', 'Não foi possível identificar o titular.');
+    if (!token)               return Alert.alert('Erro', 'Sessão expirada. Faça login novamente.');
+
+    // ===== montar payload =====
+    const isDep = selectedColaborador?.startsWith('DEP_');
+    const idDependente = isDep ? selectedColaborador.replace('DEP_', '') : null;
+
+    const valorTotal = Number(
+      String(valor).replace(/\./g, '').replace(',', '.')
+    );
 
     const payload = {
-      para: selectedColaborador,
-      beneficio: selectedBeneficio,
-      valor: Number(valor.replace(',', '.')),
-      descontarEmFolha: tipo === 'Sim',
-      parcelas: tipo === 'Sim' ? selectedParcela : null,
+      idColaborador: titularId,                       // sempre envia o titular
+      idBeneficio: selectedBeneficio,
+      valorTotal,
       descricao,
-      documento: documento
-        ? { uri: documento.uri, name: documento.name, type: documento.type, size: documento.size }
-        : null,
+      qtdeParcelas: tipo === 'Sim' ? Number(selectedParcela) : 1, // 1 por padrão
+      tipoPagamento: paymentMap[tipo],                // Sim/Não/Doação -> enum da API
+      ...(idDependente ? { idDependente } : {}),      // envia se for dependente
     };
 
-    console.log('Payload solicitação:', payload);
-    Alert.alert('Sucesso', 'Sua solicitação foi enviada!');
+    try {
+      setSubmitting(true);
+
+      // 1) Criar solicitação
+      const created = await criarSolicitacao(payload, token);
+      const solicitacaoId =
+        created?.id || created?.solicitacaoId || created?.data?.id;
+
+      if (!solicitacaoId) {
+        throw new Error('ID da solicitação não retornado pela API');
+      }
+
+      // 2) Upload do documento (obrigatório)
+      const fileToSend = {
+        uri: documento.uri,
+        name: documento.name,
+        type: documento.type,
+      };
+
+      await uploadDoc(solicitacaoId, titularId, fileToSend, token);
+
+      Alert.alert('Sucesso', 'Solicitação criada e documento enviado!');
+      // Reset
+      setSelectedBeneficio(null);
+      setValor('');
+      setTipo('');
+      setSelectedParcela(null);
+      setDescricao('');
+      setDocumento(null);
+    } catch (err) {
+      console.error('Erro ao solicitar benefício:', err);
+      Alert.alert('Erro', err?.message || 'Falha ao enviar a solicitação.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  /* ======== RENDER NO MESMO PADRÃO DE AgendarConsulta ======== */
   if (loading) {
     return (
       <Fundo>
@@ -195,7 +266,7 @@ export default function SolicitarBeneficio({ navigation }) {
         <Text style={styles.label}>Selecione o benefício</Text>
         <Select
           placeholder="Selecione o benefício"
-          data={beneficiosMock}
+          data={beneficios}
           selectedValue={selectedBeneficio}
           onValueChange={setSelectedBeneficio}
         />
@@ -208,13 +279,14 @@ export default function SolicitarBeneficio({ navigation }) {
           onChangeText={setValor}
         />
 
-        <Text style={styles.label}>Descontar em folha?</Text>
+        <Text style={styles.label}>Tipo de pagamento</Text>
         <RadioGroup
           value={tipo}
           onChange={setTipo}
           options={[
-            { label: 'Sim', value: 'Sim' },
-            { label: 'Não', value: 'Não' },
+            { label: 'Sim', value: 'Sim' },       // DESCONTADO_FOLHA
+            { label: 'Não', value: 'Não' },       // PAGAMENTO_PROPRIO
+            { label: 'Doação', value: 'Doação' }, // DOACAO
           ]}
         />
 
@@ -253,7 +325,9 @@ export default function SolicitarBeneficio({ navigation }) {
               style={styles.uploadIcon}
               resizeMode="contain"
             />
-            <Text style={styles.uploadText}>Enviar documento</Text>
+            <Text style={styles.uploadText}>
+              {documento ? 'Trocar documento' : 'Enviar documento'}
+            </Text>
           </View>
         </Pressable>
 
@@ -268,7 +342,7 @@ export default function SolicitarBeneficio({ navigation }) {
           </View>
         )}
 
-        <SubmitButton title="SOLICITAR" onPress={handleSolicitar} />
+        <SubmitButton title={submitting ? "ENVIANDO..." : "SOLICITAR"} onPress={handleSolicitar} />
       </ScrollView>
     </Fundo>
   );
@@ -303,7 +377,6 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 16,
   },
-  /* ========= TextArea com a mesma “cara” do Input ========= */
   textArea: {
     borderWidth: 1.2,
     borderColor: '#3A3A3A',
@@ -319,7 +392,6 @@ const styles = StyleSheet.create({
   textAreaFocused: {
     borderColor: '#047857',
   },
-  /* ===== Botão "Enviar documento" ===== */
   uploadButton: {
     backgroundColor: '#076580',
     borderRadius: 14,
@@ -343,7 +415,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  /* Chip arquivo selecionado */
   fileRow: {
     marginTop: 10,
     paddingHorizontal: 12,
