@@ -187,3 +187,18 @@ export const buscarAgendamentoPorId = async (ColaboradorId, token) => {
     throw new Error("Falha de conexão com o servidor");
   }
 };
+
+export const buscarParcelasAbertas = async (ColaboradorId, token) => {
+  try {
+    const response = await httpClient.get(`/solicitacao/parcelas/${ColaboradorId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Erro ao buscar parcelas abertas:", error);
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar parcelas abertas");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};
