@@ -109,12 +109,12 @@ export const buscarDocumentoporId = async (SolicitacaoId, ColaboradorId, token) 
   }
 };
 
-export const documentoUrl = async(nomeArquivoUnico, token) => {
-  try{
-        const response = await httpClient.get(`/documentos/${nomeArquivoUnico}/url-acesso`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        return response.data;
+export const documentoUrl = async (nomeArquivoUnico, token) => {
+  try {
+    const response = await httpClient.get(`/documentos/${nomeArquivoUnico}/url-acesso`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   } catch (error) {
     console.error("❌ Erro ao buscar URL do documento:", error);
     if (error.response) {
@@ -122,7 +122,7 @@ export const documentoUrl = async(nomeArquivoUnico, token) => {
     }
     throw new Error("Falha de conexão com o servidor");
   }
-};  
+};
 
 export const disponibilidadeMedico = async (MedicoId, token, date) => {
   try {
@@ -142,7 +142,7 @@ export const disponibilidadeMedico = async (MedicoId, token, date) => {
 export const agendarConsulta = async (data, token) => {
   try {
     const response = await httpClient.post(`/agendamento`, data, {
-      headers: { 
+      headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
@@ -188,15 +188,16 @@ export const buscarAgendamentoPorId = async (ColaboradorId, token) => {
   }
 };
 
+/** ====== CRIAR SOLICITAÇÃO ====== */
 export const criarSolicitacao = async (
   {
     idColaborador,
     idBeneficio,
     valorTotal,
-    idDependente,  
+    idDependente,   // opcional
     descricao,
     qtdeParcelas,
-    tipoPagamento,  
+    tipoPagamento,  // 'DESCONTADO_FOLHA' | 'PAGAMENTO_PROPRIO' | 'DOACAO'
   },
   token
 ) => {
@@ -208,7 +209,7 @@ export const criarSolicitacao = async (
       descricao: String(descricao),
       qtdeParcelas: Number(qtdeParcelas),
       tipoPagamento: String(tipoPagamento),
-      ...(idDependente ? { idDependente: String(idDependente) } : {}), 
+      ...(idDependente ? { idDependente: String(idDependente) } : {}),
     };
 
     const response = await httpClient.post('/solicitacao', payload, {
@@ -229,6 +230,7 @@ export const criarSolicitacao = async (
   }
 };
 
+/** ====== UPLOAD DE DOCUMENTO (exatamente como você pediu) ====== */
 export const uploadDoc = async ({ solicitacaoId, colaboradorId, file }, token) => {
   try {
     const formData = new FormData();
@@ -266,7 +268,23 @@ export const buscarBeneficios = async (token) => {
     return response.data;
   } catch (error) {
     if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao buscar especialidade");
+      throw new Error(error.response.data.message || "Erro ao buscar benefícios");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+};
+
+/** ====== FUNÇÃO QUE VEIO DO OUTRO LADO DO MERGE ====== */
+export const buscarParcelasAbertas = async (ColaboradorId, token) => {
+  try {
+    const response = await httpClient.get(`/solicitacao/parcelas/${ColaboradorId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Erro ao buscar parcelas abertas:", error);
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar parcelas abertas");
     }
     throw new Error("Falha de conexão com o servidor");
   }
