@@ -291,7 +291,7 @@ export default function SolicitarBeneficio() {
           onChangeText={setValor}
         />
 
-        <Text style={styles.label}>Tipo de pagamento</Text>
+        <Text style={styles.label}>Descontar em Folha?</Text>
         <RadioGroup
           value={tipo}
           onChange={setTipo}
