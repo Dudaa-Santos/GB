@@ -188,18 +188,44 @@ export const buscarAgendamentoPorId = async (ColaboradorId, token) => {
   }
 };
 
-export const criarSolicitacao = async (data, token) => {
+export const criarSolicitacao = async (
+  {
+    idColaborador,
+    idBeneficio,
+    valorTotal,
+    idDependente,  
+    descricao,
+    qtdeParcelas,
+    tipoPagamento,  
+  },
+  token
+) => {
   try {
-    const response = await httpClient.post(`/solicitacao`, data, {
-      headers: { Authorization: `Bearer ${token}` },
+    const payload = {
+      idColaborador: String(idColaborador),
+      idBeneficio: String(idBeneficio),
+      valorTotal: Number(valorTotal),
+      descricao: String(descricao),
+      qtdeParcelas: Number(qtdeParcelas),
+      tipoPagamento: String(tipoPagamento),
+      ...(idDependente ? { idDependente: String(idDependente) } : {}), 
+    };
+
+    const response = await httpClient.post('/solicitacao', payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
     });
+
     return response.data;
   } catch (error) {
-    console.error("❌ Erro ao criar solicitação:", error);
-    if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao criar solicitação");
+    console.error('❌ Erro ao criar solicitação:', error);
+    if (error?.response) {
+      throw new Error(error.response.data?.message || 'Erro ao criar solicitação');
     }
-    throw new Error("Falha de conexão com o servidor");
+    throw new Error('Falha de conexão com o servidor');
   }
 };
 

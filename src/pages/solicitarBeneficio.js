@@ -93,7 +93,7 @@ export default function SolicitarBeneficio() {
         ];
 
         setColaboradores(lista);
-        setSelectedColaborador(null);
+        setSelectedColaborador(null); // inicia sem seleção
 
         // 2) Buscar benefícios
         const bResp = await buscarBeneficios(tk);
@@ -202,17 +202,29 @@ export default function SolicitarBeneficio() {
         throw new Error('ID da solicitação não retornado pela API');
       }
 
-      // 2) Upload do documento (obrigatório)
+      // 2) Upload do documento (obrigatório) — assinatura correta
       const fileToSend = {
         uri: documento.uri,
         name: documento.name,
         type: documento.type,
       };
 
-      await uploadDoc(solicitacaoId, titularId, fileToSend, token);
+      if (!fileToSend?.uri) {
+        throw new Error('Arquivo inválido: uri ausente');
+      }
+
+      await uploadDoc(
+        {
+          solicitacaoId,
+          colaboradorId: titularId,
+          file: fileToSend,
+        },
+        token
+      );
 
       Alert.alert('Sucesso', 'Solicitação criada e documento enviado!');
       // Reset
+      setSelectedColaborador(null);
       setSelectedBeneficio(null);
       setValor('');
       setTipo('');
