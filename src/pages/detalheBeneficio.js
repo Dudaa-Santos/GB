@@ -79,7 +79,14 @@ export default function DetalheBeneficio({ route }) {
         const nomeArquivoParaBusca = documento?.nomeArquivoUnico;
         const key = documento.id || documento.nomeArquivoUnico || documento.nomeArquivoOriginal;
 
+        console.log('🔍 Processando documento:', {
+          key,
+          nomeArquivoParaBusca,
+          documento: documento
+        });
+
         if (!nomeArquivoParaBusca) {
+          console.log('❌ Nome arquivo para busca vazio');
           urls[key] = "";
           loadingMap[key] = false;
           setLoadingUrlMap({ ...loadingMap });
@@ -88,14 +95,17 @@ export default function DetalheBeneficio({ route }) {
 
         try {
           const urlData = await documentoUrl(nomeArquivoParaBusca, token);
+          console.log('📡 Resposta documentoUrl:', urlData);
+          
           const raw = urlData?.data || "";
           const full = raw.startsWith("http")
             ? raw
             : `${process.env.EXPO_PUBLIC_API_URL || ""}${raw}`;
 
+          console.log('🌐 URL final gerada:', full);
           urls[key] = full;
         } catch (error) {
-          console.error(`Erro ao buscar URL do documento ${documento.nomeArquivoOriginal || key}:`, error);
+          console.error(`❌ Erro ao buscar URL do documento ${documento.nomeArquivoOriginal || key}:`, error);
           urls[key] = "";
         } finally {
           loadingMap[key] = false;
@@ -103,6 +113,7 @@ export default function DetalheBeneficio({ route }) {
         }
       }
 
+      console.log('📋 URLs finais:', urls);
       setDocumentosUrls(urls);
     };
 

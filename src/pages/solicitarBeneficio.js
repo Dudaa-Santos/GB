@@ -113,51 +113,150 @@ export default function SolicitarBeneficio() {
 
   const handleEnviarDocumento = async () => {
     try {
+      console.log('🔍 Iniciando seleção de documento...');
+      console.log('🌐 Platform.OS:', Platform.OS);
+
       const res = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
         multiple: false,
         copyToCacheDirectory: true,
       });
 
-      if (res.canceled) return;
+      console.log('📥 Resultado COMPLETO do DocumentPicker:');
+      console.log(JSON.stringify(res, null, 2));
 
-      const file = res.assets?.[0];
-      if (!file) return;
+      if (res.canceled || res.cancelled) {
+        console.log('❌ Seleção cancelada pelo usuário');
+        return;
+      }
 
-      const guessedType =
-        file.mimeType ||
-        (file.name?.toLowerCase().endsWith('.pdf') ? 'application/pdf'
-          : file.name?.toLowerCase().endsWith('.png') ? 'image/png'
-          : file.name?.toLowerCase().endsWith('.jpg') || file.name?.toLowerCase().endsWith('.jpeg') ? 'image/jpeg'
-          : undefined);
+      // Diferentes estruturas dependendo da versão do expo-document-picker
+      let file = null;
+      
+      if (res.assets && res.assets.length > 0) {
+        file = res.assets[0];
+        console.log('📂 Usando res.assets[0]');
+      } else if (res.uri) {
+        // Versão mais antiga do expo-document-picker
+        file = {
+          uri: res.uri,
+          name: res.name,
+          size: res.size,
+          mimeType: res.mimeType || res.type
+        };
+        console.log('📂 Usando res direto (formato antigo)');
+      }
 
+      if (!file) {
+        console.log('❌ Nenhum arquivo encontrado na resposta');
+        Alert.alert('Erro', 'Nenhum arquivo selecionado');
+        return;
+      }
+
+      console.log('📄 Arquivo extraído:');
+      console.log(JSON.stringify(file, null, 2));
+
+      // Validar propriedades essenciais
+      if (!file.uri) {
+        console.log('❌ Arquivo sem URI');
+        Alert.alert('Erro', 'Arquivo inválido - sem URI');
+        return;
+      }
+
+      // Validações de tamanho
       if (typeof file.size === 'number' && file.size > MAX_FILE_SIZE) {
+        console.log(`❌ Arquivo muito grande: ${file.size} bytes`);
         return Alert.alert('Arquivo muito grande', 'Envie um arquivo de até 10 MB.');
       }
 
-      if (guessedType && !ACCEPTED_MIME.includes(guessedType)) {
+      // Determinar MIME type
+      let mimeType = file.mimeType || file.type;
+      
+      // Se não tem MIME type, tenta adivinhar pela extensão
+      if (!mimeType && file.name) {
+        const ext = file.name.toLowerCase().split('.').pop();
+        const mimeMap = {
+          'pdf': 'application/pdf',
+          'png': 'image/png',
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'gif': 'image/gif',
+          'bmp': 'image/bmp',
+          'webp': 'image/webp'
+        };
+        mimeType = mimeMap[ext] || 'application/octet-stream';
+        console.log(`🔍 MIME type inferido pela extensão "${ext}": ${mimeType}`);
+      }
+
+      // Validar MIME type
+      if (mimeType && !ACCEPTED_MIME.includes(mimeType) && !mimeType.startsWith('image/')) {
+        console.log(`❌ MIME type não permitido: ${mimeType}`);
         return Alert.alert('Tipo não permitido', 'Envie PDF, JPG ou PNG.');
       }
 
-      const picked = {
+      // Gerar nome se não existir
+      let fileName = file.name || file.filename;
+      if (!fileName) {
+        const timestamp = Date.now();
+        const ext = mimeType === 'application/pdf' ? 'pdf' : 
+                   mimeType.startsWith('image/') ? 'jpg' : 'file';
+        fileName = `documento_${timestamp}.${ext}`;
+        console.log(`📝 Nome gerado automaticamente: ${fileName}`);
+      }
+
+      // Tratamento especial para web
+      let processedFile = {
         uri: file.uri,
-        name: file.name || `documento${Platform.OS === 'ios' ? '' : ''}`,
-        type: guessedType || 'application/octet-stream',
+        name: fileName,
+        type: mimeType || 'application/octet-stream',
         size: file.size ?? null,
       };
 
-      setDocumento(picked);
-      Alert.alert('Documento selecionado', picked.name);
+      // Na web, às vezes precisa de tratamento especial da URI
+      if (Platform.OS === 'web') {
+        console.log('🌐 Processamento especial para web');
+        
+        // Se a URI não parece válida para web, tenta outras propriedades
+        if (!file.uri.startsWith('blob:') && !file.uri.startsWith('data:')) {
+          console.log('⚠️ URI pode ser inválida para web:', file.uri);
+          
+          // Tenta usar outras propriedades disponíveis
+          if (file.file) {
+            console.log('🔄 Tentando usar file.file');
+            processedFile.file = file.file;
+          }
+        }
+
+        // Log adicional para debug na web
+        console.log('🌐 Propriedades do arquivo na web:');
+        Object.keys(file).forEach(key => {
+          console.log(`  ${key}:`, typeof file[key], file[key]);
+        });
+      }
+
+      console.log('✅ Documento processado final:');
+      console.log(JSON.stringify(processedFile, null, 2));
+
+      setDocumento(processedFile);
+      Alert.alert('Documento selecionado', `${processedFile.name} selecionado com sucesso!`);
+
     } catch (e) {
-      console.log('Erro ao selecionar documento:', e);
-      Alert.alert('Erro', 'Não foi possível selecionar o documento.');
+      console.error('❌ Erro ao selecionar documento:');
+      console.error('❌ Erro completo:', e);
+      console.error('❌ Stack trace:', e.stack);
+      Alert.alert('Erro', `Não foi possível selecionar o documento: ${e.message}`);
     }
   };
 
-  const handleRemoverDocumento = () => setDocumento(null);
+  const handleRemoverDocumento = () => {
+    console.log('🗑️ Removendo documento');
+    setDocumento(null);
+  };
 
   const handleSolicitar = async () => {
     if (submitting) return;
+
+    console.log('🚀 Iniciando solicitação...');
 
     // ===== validações obrigatórias =====
     if (!selectedColaborador) return Alert.alert('Atenção', 'Selecione para quem será o benefício.');
@@ -172,6 +271,11 @@ export default function SolicitarBeneficio() {
     if (!titularId)           return Alert.alert('Erro', 'Não foi possível identificar o titular.');
     if (!token)               return Alert.alert('Erro', 'Sessão expirada. Faça login novamente.');
 
+    // Validar arquivo antes do envio
+    if (!documento.uri && !documento.file) {
+      return Alert.alert('Erro', 'Arquivo inválido. Selecione novamente.');
+    }
+
     // ===== montar payload =====
     const isDep = selectedColaborador?.startsWith('DEP_');
     const idDependente = isDep ? selectedColaborador.replace('DEP_', '') : null;
@@ -181,20 +285,29 @@ export default function SolicitarBeneficio() {
     );
 
     const payload = {
-      idColaborador: titularId,                       // sempre envia o titular
+      idColaborador: titularId,
       idBeneficio: selectedBeneficio,
       valorTotal,
       descricao,
-      qtdeParcelas: tipo === 'Sim' ? Number(selectedParcela) : 1, // 1 por padrão
-      tipoPagamento: paymentMap[tipo],                // Sim/Não/Doação -> enum da API
-      ...(idDependente ? { idDependente } : {}),      // envia se for dependente
+      qtdeParcelas: tipo === 'Sim' ? Number(selectedParcela) : 1,
+      tipoPagamento: paymentMap[tipo],
+      ...(idDependente ? { idDependente } : {}),
     };
+
+    console.log('📤 Payload da solicitação:');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('📎 Documento a ser enviado:');
+    console.log(JSON.stringify(documento, null, 2));
 
     try {
       setSubmitting(true);
 
       // 1) Criar solicitação
+      console.log('📝 Criando solicitação...');
       const created = await criarSolicitacao(payload, token);
+      console.log('✅ Solicitação criada:');
+      console.log(JSON.stringify(created, null, 2));
+
       const solicitacaoId =
         created?.id || created?.solicitacaoId || created?.data?.id;
 
@@ -202,28 +315,45 @@ export default function SolicitarBeneficio() {
         throw new Error('ID da solicitação não retornado pela API');
       }
 
-      // 2) Upload do documento (obrigatório) — assinatura correta
+      console.log('🆔 ID da solicitação extraído:', solicitacaoId);
+
+      // 2) Preparar arquivo para upload
       const fileToSend = {
         uri: documento.uri,
         name: documento.name,
         type: documento.type,
       };
 
-      if (!fileToSend?.uri) {
-        throw new Error('Arquivo inválido: uri ausente');
+      // Se tem o objeto file (web), inclui também
+      if (documento.file) {
+        fileToSend.file = documento.file;
       }
 
-      await uploadDoc(
-        {
-          solicitacaoId,
-          colaboradorId: titularId,
-          file: fileToSend,
-        },
-        token
-      );
+      console.log('📤 Enviando documento...');
+      console.log('📎 Dados do arquivo para upload:');
+      console.log(JSON.stringify(fileToSend, null, 2));
+      console.log('🆔 ID da solicitação:', solicitacaoId);
+      console.log('👤 ID do colaborador:', titularId);
+      console.log('🌐 Platform:', Platform.OS);
 
-      Alert.alert('Sucesso', 'Solicitação criada e documento enviado!');
-      // Reset
+      // 3) Upload do documento
+      const uploadParams = {
+        solicitacaoId,
+        colaboradorId: titularId,
+        file: fileToSend,
+      };
+
+      console.log('📤 Parâmetros do upload:');
+      console.log(JSON.stringify(uploadParams, null, 2));
+
+      const uploadResult = await uploadDoc(uploadParams, token);
+
+      console.log('✅ Upload concluído:');
+      console.log(JSON.stringify(uploadResult, null, 2));
+
+      Alert.alert('Sucesso', 'Solicitação criada e documento enviado com sucesso!');
+      
+      // Reset do formulário
       setSelectedColaborador(null);
       setSelectedBeneficio(null);
       setValor('');
@@ -231,9 +361,29 @@ export default function SolicitarBeneficio() {
       setSelectedParcela(null);
       setDescricao('');
       setDocumento(null);
+
     } catch (err) {
-      console.error('Erro ao solicitar benefício:', err);
-      Alert.alert('Erro', err?.message || 'Falha ao enviar a solicitação.');
+      console.error('❌ Erro ao solicitar benefício:');
+      console.error('❌ Erro completo:', err);
+      console.error('❌ Stack trace:', err.stack);
+      
+      // Log adicional para entender melhor o erro
+      if (err.response) {
+        console.error('❌ Response data:', err.response.data);
+        console.error('❌ Response status:', err.response.status);
+        console.error('❌ Response headers:', err.response.headers);
+      }
+      
+      let errorMessage = 'Falha ao enviar a solicitação.';
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      }
+      
+      Alert.alert('Erro', errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -241,9 +391,10 @@ export default function SolicitarBeneficio() {
 
   if (loading) {
     return (
-      <Fundo>
+      <Fundo scrollable={false}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#047857" />
+          <Text style={styles.loadingText}>Carregando dados...</Text>
         </View>
       </Fundo>
     );
@@ -251,7 +402,7 @@ export default function SolicitarBeneficio() {
 
   if (errorLoad) {
     return (
-      <Fundo>
+      <Fundo scrollable={false}>
         <View style={styles.center}>
           <Text style={styles.errorOnlyText}>{errorLoad}</Text>
         </View>
@@ -261,7 +412,7 @@ export default function SolicitarBeneficio() {
 
   return (
     <Fundo>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <TituloIcone
           titulo="Solicitar Benefício"
           icone={require("../images/icones/Money_g.png")}
@@ -296,9 +447,9 @@ export default function SolicitarBeneficio() {
           value={tipo}
           onChange={setTipo}
           options={[
-            { label: 'Sim', value: 'Sim' },       // DESCONTADO_FOLHA
-            { label: 'Não', value: 'Não' },       // PAGAMENTO_PROPRIO
-            { label: 'Doação', value: 'Doação' }, // DOACAO
+            { label: 'Sim', value: 'Sim' },
+            { label: 'Não', value: 'Não' },
+            { label: 'Doação', value: 'Doação' },
           ]}
         />
 
@@ -345,16 +496,32 @@ export default function SolicitarBeneficio() {
 
         {documento && (
           <View style={styles.fileRow}>
-            <Text style={styles.fileName} numberOfLines={1}>
-              {documento.name} {typeof documento.size === 'number' ? `• ${(documento.size / (1024 * 1024)).toFixed(2)} MB` : ''}
-            </Text>
+            <View style={styles.fileInfo}>
+              <Text style={styles.fileName} numberOfLines={1}>
+                📎 {documento.name}
+              </Text>
+              {typeof documento.size === 'number' && (
+                <Text style={styles.fileSize}>
+                  {(documento.size / (1024 * 1024)).toFixed(2)} MB
+                </Text>
+              )}
+              <Text style={styles.fileDebug}>
+                URI: {documento.uri ? 'OK' : 'MISSING'} | Type: {documento.type || 'N/A'}
+              </Text>
+            </View>
             <Pressable onPress={handleRemoverDocumento} style={styles.removeBtn}>
-              <Text style={styles.removeBtnText}>Remover</Text>
+              <Text style={styles.removeBtnText}>✕</Text>
             </Pressable>
           </View>
         )}
 
-        <SubmitButton title={submitting ? "ENVIANDO..." : "SOLICITAR"} onPress={handleSolicitar} />
+        <View style={styles.buttonContainer}>
+          <SubmitButton 
+            title={submitting ? "ENVIANDO..." : "SOLICITAR"} 
+            onPress={handleSolicitar}
+            disabled={submitting}
+          />
+        </View>
       </ScrollView>
     </Fundo>
   );
@@ -365,12 +532,19 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 16,
     gap: 8,
+    paddingBottom: 40,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   errorOnlyText: {
     fontSize: 16,
@@ -383,11 +557,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 6,
     color: "#000000",
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 8,
-    marginBottom: 16,
   },
   textArea: {
     borderWidth: 1.2,
@@ -428,31 +597,52 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   fileRow: {
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#F3F4F6',
-    borderRadius: 10,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     justifyContent: 'space-between',
+    borderLeftWidth: 4,
+    borderLeftColor: '#065F46',
+  },
+  fileInfo: {
+    flex: 1,
+    marginRight: 12,
   },
   fileName: {
-    flex: 1,
     fontSize: 14,
     color: '#111827',
-    marginRight: 8,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  fileSize: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  fileDebug: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontFamily: 'monospace',
   },
   removeBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: '#E11D48',
+    minWidth: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   removeBtnText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 12,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  buttonContainer: {
+    marginTop: 20,
   },
 });
