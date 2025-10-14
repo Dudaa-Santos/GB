@@ -151,19 +151,26 @@ export default function DocumentosEnviados() {
 
     // Função para obter nome do documento
     const getNomeDocumento = (documento) => {
+        // Prioridade para o nome original do arquivo
+        if (documento.nomeArquivoOriginal) {
+            return documento.nomeArquivoOriginal;
+        }
         if (documento.nomeOriginal) {
             return documento.nomeOriginal;
-        }
-        if (documento.nome) {
-            return documento.nome;
         }
         if (documento.nomeArquivo) {
             return documento.nomeArquivo;
         }
+        if (documento.nome) {
+            return documento.nome;
+        }
+        if (documento.filename) {
+            return documento.filename;
+        }
         
-        // Se não tem nome, usa informações da solicitação
-        const beneficioNome = documento.solicitacao?.beneficio?.nome || "Benefício";
-        return `Documento - ${beneficioNome}`;
+        // Fallback: se não tem nome do arquivo, usa ID + extensão genérica
+        const docId = documento.id || documento.nomeArquivoUnico || "documento";
+        return `${docId}.pdf`;
     };
 
     // Função para obter status do documento

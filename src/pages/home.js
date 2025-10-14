@@ -41,7 +41,7 @@ export default function Home({ navigation }) {
   };
 
   return (
-    <Fundo isHome={true}>
+    <Fundo isHome={true} scrollable={true}>
       <View style={styles.content}>
         <Text style={styles.titulo}>
           Olá, {colaborador ? colaborador.data.nome : "Carregando..."}

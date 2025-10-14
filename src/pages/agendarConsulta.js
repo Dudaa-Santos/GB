@@ -374,7 +374,7 @@ export default function AgendarConsulta() {
   }
 
   return (
-    <Fundo>
+    <Fundo scrollable={true}>
       <View style={styles.container}>
         <TituloIcone titulo="Agendar Consulta" icone={require("../images/icones/Calendar_add_g.png")} />
 

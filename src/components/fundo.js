@@ -1,9 +1,11 @@
 import React from "react";
-import { View, Image, StyleSheet, ScrollView, Pressable, Text, StatusBar } from "react-native";
+import { View, Image, StyleSheet, ScrollView, Pressable, Text, StatusBar, Dimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function Fundo({ children, isHome = false, showBackButton = true }) {
+const { height: screenHeight } = Dimensions.get('window');
+
+export default function Fundo({ children, isHome = false, showBackButton = true, scrollable = true }) {
   const navigation = useNavigation();
 
   const handleBack = () => {
@@ -11,6 +13,13 @@ export default function Fundo({ children, isHome = false, showBackButton = true 
       navigation.goBack();
     }
   };
+
+  const ContentWrapper = scrollable ? ScrollView : View;
+  
+  // Calcular altura disponível para o conteúdo
+  const headerHeight = 70;
+  const statusBarHeight = StatusBar.currentHeight || 44;
+  const availableHeight = screenHeight - headerHeight - statusBarHeight;
 
   return (
     <View style={styles.container}>
@@ -31,13 +40,23 @@ export default function Fundo({ children, isHome = false, showBackButton = true 
         </View>
       </View>
 
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={true}
-        keyboardShouldPersistTaps="handled"
+      <ContentWrapper
+        style={[
+          scrollable ? styles.scrollContent : styles.content,
+          scrollable && { height: availableHeight }  // Força altura específica para ScrollView na web
+        ]}
+        showsVerticalScrollIndicator={scrollable}
+        keyboardShouldPersistTaps={scrollable ? "handled" : undefined}
+        contentContainerStyle={scrollable ? { 
+          flexGrow: 1,
+          minHeight: availableHeight  // Garante que o conteúdo ocupe pelo menos a altura disponível
+        } : undefined}
+        nestedScrollEnabled={true}  // Permite scroll aninhado
       >
-        {children}
-      </ScrollView>
+        <View style={styles.contentInner}>
+          {children}
+        </View>
+      </ContentWrapper>
     </View>
   );
 }
@@ -84,9 +103,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
+  scrollContent: {
+    backgroundColor: "#FFFEF6",
+    paddingHorizontal: 20,
+  },
   content: {
     backgroundColor: "#FFFEF6",
     paddingHorizontal: 20,
     flex: 1,
+  },
+  contentInner: {
+    flex: 1,
+    minHeight: '100%',  // Garante altura mínima
   },
 });
