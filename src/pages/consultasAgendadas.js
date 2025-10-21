@@ -112,11 +112,12 @@ export default function ConsultasAgendadas() {
           icone={require("../images/icones/Calendar_add_g.png")}
         />
 
-        {(!consultas || consultas.length === 0) ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
-          </View>
-        ) : (
+        <View style={styles.contentArea}>
+          {(!consultas || consultas.length === 0) ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
+            </View>
+          ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.cardsContainer}
@@ -136,7 +137,8 @@ export default function ConsultasAgendadas() {
               />
             ))}
           </ScrollView>
-        )}
+        )}  
+        </View>
       </View>
     </Fundo>
   );
@@ -146,6 +148,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "flex-start",
+  },
+  contentArea: {
+    flex: 1,               
+    paddingHorizontal: 16,  
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
   },
   cardsContainer: {
     marginTop: 24, 

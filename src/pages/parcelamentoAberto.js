@@ -230,7 +230,7 @@ export default function ParcelamentoAberto() {
                 {/* Footer informativo */}
                 <View style={styles.infoContainer}>
                     <Text style={styles.infoText}>
-                        💡 As parcelas serão descontadas automaticamente do seu salário conforme o cronograma estabelecido.
+                        As parcelas serão descontadas automaticamente do seu salário conforme o cronograma estabelecido.
                     </Text>
                 </View>
             </View>
@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#92400E',
         lineHeight: 20,
+        textAlign: 'center',
     },
     loadingContainer: {
         flex: 1,
