@@ -351,11 +351,13 @@ export default function Historico() {
                     onSelect={setSelectedTab}
                 />
 
-                {selectedTab === "historicoConsulta" ? (
-                    renderConsultas()
-                ) : (
-                    renderBeneficios()
-                )}
+                <View style={styles.contentArea}>
+                    {selectedTab === "historicoConsulta" ? (
+                        renderConsultas()
+                    ) : (
+                        renderBeneficios()
+                    )}
+                </View>
             </View>
         </Fundo>
     );
@@ -366,7 +368,11 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
     },
+    contentArea: {
+        flex: 1,
+    },
     loadingContainer: {
+        flex: 1,
         alignItems: "center",
         justifyContent: "center",
         padding: 40,
@@ -377,6 +383,7 @@ const styles = StyleSheet.create({
         color: "#6B7280",
     },
     errorContainer: {
+        flex: 1,
         alignItems: "center",
         justifyContent: "center",
         padding: 40,
@@ -393,6 +400,7 @@ const styles = StyleSheet.create({
         textDecorationLine: "underline",
     },
     emptyContainer: {
+        flex: 1,
         alignItems: "center",
         justifyContent: "center",
         padding: 40,

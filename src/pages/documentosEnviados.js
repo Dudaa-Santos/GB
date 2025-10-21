@@ -330,7 +330,10 @@ export default function DocumentosEnviados() {
     return (
         <Fundo>
             <View style={styles.content}>
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}  
+                >
                     <View style={{ marginBottom: 16 }}>
                         <TituloIcone
                             titulo="Documentos Enviados"
@@ -369,6 +372,9 @@ const styles = StyleSheet.create({
     pressedCard: {
         opacity: 0.7,
         transform: [{ scale: 0.98 }],
+    },
+    scrollContent: {
+        flexGrow: 1,                 
     },
     infoContainer: {
         backgroundColor: '#FEF3C7',

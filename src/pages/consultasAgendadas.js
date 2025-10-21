@@ -12,7 +12,7 @@ export default function ConsultasAgendadas() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ========= Helpers (mesmos do Historico) =========
+  // ========= Helpers =========
   const getPacienteNome = (consulta) => {
     if (consulta?.dependente?.nome) return consulta.dependente.nome;
     if (consulta?.colaborador?.nome) return consulta.colaborador.nome;
@@ -36,7 +36,7 @@ export default function ConsultasAgendadas() {
     }
   };
 
-  // ========= Fetch (mesma lógica do Historico) =========
+  // ========= Fetch =========
   const fetchConsultas = async () => {
     try {
       setLoading(true);
@@ -63,13 +63,11 @@ export default function ConsultasAgendadas() {
         consultasArray = response.data;
       } else if (response?.success && Array.isArray(response.data)) {
         consultasArray = response.data;
-      } else {
-        consultasArray = [];
       }
 
-      // ✅ FILTRAR APENAS CONSULTAS COM STATUS "AGENDADO"
-      const consultasAgendadas = consultasArray.filter(
-        (consulta) => consulta?.status?.toUpperCase() === "AGENDADO"
+      // ✅ Mantém apenas status AGENDADO
+      const consultasAgendadas = (consultasArray || []).filter(
+        (c) => String(c?.status || "").toUpperCase() === "AGENDADO"
       );
 
       setConsultas(consultasAgendadas);
@@ -116,31 +114,33 @@ export default function ConsultasAgendadas() {
           icone={require("../images/icones/Calendar_add_g.png")}
         />
 
-        {(!consultas || consultas.length === 0) ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>Nenhuma consulta agendada encontrada.</Text>
-          </View>
-        ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.cardsContainer}
-          >
-            {consultas.map((consulta, idx) => (
-              <CardConsultasAgendadas
-                key={consulta.idAgendamento || consulta.id || idx}
-                nome={getPacienteNome(consulta)}
-                dataHora={formatDateTime(consulta.horario)}
-                medico={getMedicoNome(consulta)}
-                onEdit={() => {
-                  Alert.alert("Editar", `Consulta ${consulta.idAgendamento || consulta.id || idx}`);
-                }}
-                onDelete={() => {
-                  Alert.alert("Excluir", `Consulta ${consulta.idAgendamento || consulta.id || idx}`);
-                }}
-              />
-            ))}
-          </ScrollView>
-        )}
+        <View style={styles.contentArea}>
+          {(!consultas || consultas.length === 0) ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyText}>Nenhuma consulta agendada encontrada.</Text>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.cardsContainer}
+            >
+              {consultas.map((consulta, idx) => (
+                <CardConsultasAgendadas
+                  key={consulta.idAgendamento || consulta.id || idx}
+                  nome={getPacienteNome(consulta)}
+                  dataHora={formatDateTime(consulta.horario)}
+                  medico={getMedicoNome(consulta)}
+                  onEdit={() => {
+                    Alert.alert("Editar", `Consulta ${consulta.idAgendamento || consulta.id || idx}`);
+                  }}
+                  onDelete={() => {
+                    Alert.alert("Excluir", `Consulta ${consulta.idAgendamento || consulta.id || idx}`);
+                  }}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
       </View>
     </Fundo>
   );
@@ -151,8 +151,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-start",
   },
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
   cardsContainer: {
-    marginTop: 24, 
+    marginTop: 24,
     paddingBottom: 12,
     paddingHorizontal: 0,
   },
@@ -160,17 +170,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 10, 
+    gap: 10,
   },
   loadingText: {
     fontSize: 16,
     textAlign: "center",
-  },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 40,
   },
   emptyText: {
     fontSize: 16,
