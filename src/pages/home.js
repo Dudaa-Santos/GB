@@ -191,7 +191,7 @@ const contarBeneficiosPendentes = () => {
           <CardHome
             title="Documentos Enviados"
             icon={<Image source={require("../images/icones/Folder_check_g.png")} style={{ width: 26, height: 26, resizeMode: "contain" }} />}
-            onPress={() => navigation.navigate("DocumentosEnviados")}
+            onPress={() => navigation.navigate("Chat")}
           />
         </View>
         <View style={styles.buttonContainer}>

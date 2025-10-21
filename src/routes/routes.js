@@ -14,7 +14,7 @@ import Historico from "../pages/historico.js";
 import ConsultasAgendadas from "../pages/consultasAgendadas.js";
 import DetalheBeneficio from "../pages/detalheBeneficio.js";
 import AssinaturasPendentes from "../pages/assinaturasPendentes.js";
-
+import Chat from "../pages/chat.js";
 
 const Stack = createStackNavigator();
 
@@ -61,6 +61,7 @@ export default function Routes() {
         <Stack.Screen name="ConsultasAgendadas" component={ConsultasAgendadas} />
         <Stack.Screen name="DetalheBeneficio" component={DetalheBeneficio} />
         <Stack.Screen name="AssinaturasPendentes" component={AssinaturasPendentes} />
+        <Stack.Screen name="Chat" component={Chat} />
       </Stack.Navigator>
     </NavigationContainer>
   );

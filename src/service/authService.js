@@ -65,7 +65,7 @@ export const buscarMedicos = async (token) => {
 
 export const buscarSolicitacoesporId = async (ColaboradorId, token) => {
   try {
-    const response = await httpClient.get(`/solicitacao/${ColaboradorId}`, {
+    const response = await httpClient.get(`/solicitacao/colaborador/${ColaboradorId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

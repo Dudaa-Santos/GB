@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
         color: "#F8F7F7",
         paddingHorizontal: 8,
         paddingVertical: 4,
+        textTransform: "capitalize",
         borderRadius: 100,
         textAlign: "center",
         borderColor: "#0000005f",
