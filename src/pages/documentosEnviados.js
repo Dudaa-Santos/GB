@@ -17,7 +17,6 @@ export default function DocumentosEnviados() {
     // Função para buscar todos os documentos do colaborador
     const fetchDocumentos = async () => {
         try {
-            console.log("🚀 Iniciando fetchDocumentos...");
             setLoading(true);
             setError(null);
             
@@ -29,11 +28,8 @@ export default function DocumentosEnviados() {
                 return;
             }
             
-            console.log("📞 Buscando solicitações do colaborador:", colaboradorId);
-            
             // 1. Buscar todas as solicitações do colaborador
             const solicitacoesResponse = await buscarSolicitacoesporId(colaboradorId, token);
-            console.log("📥 Solicitações encontradas:", solicitacoesResponse);
             
             let solicitacoes = [];
             if (Array.isArray(solicitacoesResponse)) {
@@ -44,22 +40,16 @@ export default function DocumentosEnviados() {
                 solicitacoes = solicitacoesResponse.data;
             }
             
-            console.log("📊 Solicitações processadas:", solicitacoes);
-            
             // 2. Para cada solicitação, buscar seus documentos
             const todosDocumentos = [];
             
             for (const solicitacao of solicitacoes) {
                 try {
-                    console.log(`📄 Buscando documentos da solicitação ${solicitacao.id}...`);
-                    
                     const documentosResponse = await buscarDocumentoporId(
                         solicitacao.id, 
                         colaboradorId, 
                         token
                     );
-                    
-                    console.log(`📥 Documentos da solicitação ${solicitacao.id}:`, documentosResponse);
                     
                     let documentosDaSolicitacao = [];
                     if (Array.isArray(documentosResponse)) {
@@ -117,16 +107,13 @@ export default function DocumentosEnviados() {
                     todosDocumentos.push(...documentosComInfo);
                     
                 } catch (docError) {
-                    console.log(`⚠️ Erro ao buscar documentos da solicitação ${solicitacao.id}:`, docError);
                     // Continua para próxima solicitação mesmo se uma falhar
                 }
             }
             
-            console.log("📋 Todos os documentos encontrados:", todosDocumentos);
             setDocumentos(todosDocumentos);
             
         } catch (error) {
-            console.error("❌ Erro ao buscar documentos:", error);
             setError(`Erro ao carregar documentos: ${error.message}`);
         } finally {
             setLoading(false);
@@ -195,8 +182,6 @@ export default function DocumentosEnviados() {
             return;
         }
 
-        console.log("🔗 Navegando para DetalheBeneficio com solicitação:", documento.solicitacao);
-
         // Navegar para a tela de detalhe passando a solicitação completa
         navigation.navigate("DetalheBeneficio", { 
             solicitacao: documento.solicitacao
@@ -228,8 +213,6 @@ export default function DocumentosEnviados() {
     // Função para abrir documento (mantida para compatibilidade)
     const handleAbrirDocumento = async (documento) => {
         try {
-            console.log("🔍 Tentando abrir documento:", documento);
-            
             const token = await AsyncStorage.getItem("token");
             if (!token) {
                 Alert.alert("Erro", "Sessão inválida. Faça login novamente.");
@@ -238,10 +221,7 @@ export default function DocumentosEnviados() {
             
             // Se tem nome único do arquivo, busca a URL
             if (documento.nomeArquivoUnico) {
-                console.log("🔗 Buscando URL para:", documento.nomeArquivoUnico);
-                
                 const urlResponse = await documentoUrl(documento.nomeArquivoUnico, token);
-                console.log("📥 URL recebida:", urlResponse);
                 
                 let url = null;
                 if (typeof urlResponse === 'string') {
@@ -253,7 +233,6 @@ export default function DocumentosEnviados() {
                 }
                 
                 if (url) {
-                    console.log("🌐 Abrindo URL:", url);
                     const supported = await Linking.canOpenURL(url);
                     if (supported) {
                         await Linking.openURL(url);
@@ -268,7 +247,6 @@ export default function DocumentosEnviados() {
             }
             
         } catch (error) {
-            console.error("❌ Erro ao abrir documento:", error);
             Alert.alert("Erro", `Não foi possível abrir o documento: ${error.message}`);
         }
     };
@@ -318,8 +296,6 @@ export default function DocumentosEnviados() {
                 </View>
 
                 {documentos.map((documento, index) => {
-                    console.log(`🎯 Renderizando documento ${index + 1}:`, documento);
-                    
                     return (
                         <Pressable
                             key={documento.id || index}

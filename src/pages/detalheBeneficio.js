@@ -614,14 +614,21 @@ const styles = StyleSheet.create({
   iconBtnDisabled: { opacity: 0.45 },
 
   // olho desenhado
-  iconOnly: { width: 22, height: 16, alignItems: "center", justifyContent: "center" },
+  iconOnly: { 
+    width: 22, 
+    height: 16, 
+    alignItems: "center", 
+    justifyContent: "center",
+    position: 'relative'
+  },
   eyeOuter: {
-    width: 22,
-    height: 11,
-    borderRadius: 11,
+    width: 20,
+    height: 12,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: "#111827",
-    transform: [{ scaleY: 0.8 }],
+    backgroundColor: 'transparent',
+    position: 'absolute',
   },
   eyePupil: {
     position: "absolute",
@@ -629,6 +636,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: "#111827",
+    top: 3,
   },
 
   // download com sublinhado

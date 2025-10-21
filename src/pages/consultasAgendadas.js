@@ -67,9 +67,13 @@ export default function ConsultasAgendadas() {
         consultasArray = [];
       }
 
-      setConsultas(consultasArray);
+      // ✅ FILTRAR APENAS CONSULTAS COM STATUS "AGENDADO"
+      const consultasAgendadas = consultasArray.filter(
+        (consulta) => consulta?.status?.toUpperCase() === "AGENDADO"
+      );
+
+      setConsultas(consultasAgendadas);
     } catch (err) {
-      console.error("❌ Erro ao buscar consultas:", err);
       setError(`Erro ao carregar consultas: ${err?.message || "Tente novamente."}`);
     } finally {
       setLoading(false);
@@ -114,7 +118,7 @@ export default function ConsultasAgendadas() {
 
         {(!consultas || consultas.length === 0) ? (
           <View style={styles.center}>
-            <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
+            <Text style={styles.emptyText}>Nenhuma consulta agendada encontrada.</Text>
           </View>
         ) : (
           <ScrollView
@@ -161,5 +165,27 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     textAlign: "center",
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#DC2626",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  retryText: {
+    fontSize: 16,
+    color: "#065F46",
+    textDecorationLine: "underline",
   },
 });

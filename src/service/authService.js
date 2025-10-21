@@ -71,13 +71,8 @@ export const buscarSolicitacoesporId = async (ColaboradorId, token) => {
       },
     });
 
-    console.log("✅ Resposta da API (buscarSolicitacoesporId):", response.data);
     return response.data;
   } catch (error) {
-    console.error("❌ Erro na busca de solicitações por ID:", error);
-    console.error("❌ Status:", error.response?.status);
-    console.error("❌ Data:", error.response?.data);
-
     if (error.response) {
       throw new Error(error.response.data.message || "Erro ao buscar solicitação");
     }
@@ -87,21 +82,14 @@ export const buscarSolicitacoesporId = async (ColaboradorId, token) => {
 
 export const buscarDocumentoporId = async (SolicitacaoId, ColaboradorId, token) => {
   try {
-    console.log("🔍 Buscando documentos para solicitação ID:", SolicitacaoId, "e colaborador ID:", ColaboradorId);
-
     const response = await httpClient.get(`/documentos/${SolicitacaoId}/${ColaboradorId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    console.log("✅ Resposta da API (buscarDocumentoporId):", response.data);
     return response.data;
   } catch (error) {
-    console.error("❌ Erro na busca de documentos por ID:", error);
-    console.error("❌ Status:", error.response?.status);
-    console.error("❌ Data:", error.response?.data);
-
     if (error.response) {
       throw new Error(error.response.data.message || "Erro ao buscar documentos");
     }
@@ -116,7 +104,6 @@ export const documentoUrl = async (nomeArquivoUnico, token) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Erro ao buscar URL do documento:", error);
     if (error.response) {
       throw new Error(error.response.data.message || "Erro ao buscar URL do documento");
     }
@@ -131,7 +118,6 @@ export const disponibilidadeMedico = async (MedicoId, token, date) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Erro ao buscar disponibilidade do médico:", error);
     if (error.response) {
       throw new Error(error.response.data.message || "Erro ao buscar disponibilidade do médico");
     }
@@ -149,12 +135,7 @@ export const agendarConsulta = async (data, token) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Erro ao agendar consulta:", error);
-
     if (error?.response) {
-      console.error("↪ status:", error.response.status);
-      console.error("↪ data:", error.response.data);
-
       const msg =
         (typeof error.response.data === "string" && error.response.data) ||
         error.response.data?.message ||
@@ -180,7 +161,6 @@ export const buscarAgendamentoPorId = async (ColaboradorId, token) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Erro ao buscar agendamento por ID:", error);
     if (error.response) {
       throw new Error(error.response.data.message || "Erro ao buscar agendamento");
     }
@@ -222,7 +202,6 @@ export const criarSolicitacao = async (
 
     return response.data;
   } catch (error) {
-    console.error('❌ Erro ao criar solicitação:', error);
     if (error?.response) {
       throw new Error(error.response.data?.message || 'Erro ao criar solicitação');
     }
@@ -250,7 +229,6 @@ export const uploadDoc = async ({ solicitacaoId, colaboradorId, file }, token) =
 
     return response.data;
   } catch (error) {
-    console.error("❌ Erro ao enviar documento da solicitação:", error);
     if (error.response) {
       throw new Error(error.response.data.message || "Erro ao enviar documento");
     }
@@ -282,7 +260,6 @@ export const buscarParcelasAbertas = async (ColaboradorId, token) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Erro ao buscar parcelas abertas:", error);
     if (error.response) {
       throw new Error(error.response.data.message || "Erro ao buscar parcelas abertas");
     }

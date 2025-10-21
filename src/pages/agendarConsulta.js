@@ -355,13 +355,29 @@ export default function AgendarConsulta() {
       const resp = await agendarConsulta(payload, token);
 
       console.log("✅ Consulta agendada com sucesso:", resp);
-      Alert.alert("Sucesso", "Consulta agendada com sucesso!");
+      Alert.alert(
+        "Sucesso", 
+        "Consulta agendada com sucesso!",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Reset dos states
+              setHorarioSel(null);
+              setSel(null);
+              setSlots([]);
+              setMedicoSel(null);
+              setEspecialidadeSel(null);
+              setTipo("colaborador");
+              setDependenteSel(null);
+              
+              // Volta para a Home
+              navigation.navigate("Home");
+            }
+          }
+        ]
+      );
 
-      // Reset
-      setHorarioSel(null);
-      setSel(null);
-      setSlots([]);
-      // navigation.goBack();
     } catch (e) {
       console.error("❌ Erro completo:", e);
       let errorMessage = "Erro ao agendar consulta";

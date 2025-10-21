@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Pressable, Image, ScrollView } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import Fundo from "../components/fundo";
-import { buscarColabPorId } from "../service/authService";
+import { buscarColabPorId, buscarAgendamentoPorId, buscarSolicitacoesporId} from "../service/authService";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import WeekPillStatic from "../components/calendarioSemanal";
 import CardHome from "../components/CardHome";
@@ -11,24 +12,64 @@ import IconButton from "../components/iconButton";
 
 export default function Home({ navigation }) {
   const [colaborador, setColaborador] = useState(null);
+  const [agendamentos, setAgendamentos] = useState([]);
+  const [solicitacoes, setSolicitacoes] = useState([]);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const id = await AsyncStorage.getItem("id");
-        const token = await AsyncStorage.getItem("token");
+  const fetchUser = async () => {
+    try {
+      const id = await AsyncStorage.getItem("id");
+      const token = await AsyncStorage.getItem("token");
 
-        if (id && token) {
-          const data = await buscarColabPorId(id, token);
-          console.log("Dados do colaborador:", data);
-          setColaborador(data);
-        }
-      } catch (error) {
-        console.log("Erro ao buscar colaborador:", error);
+      if (id && token) {
+        const data = await buscarColabPorId(id, token);
+        setColaborador(data);
       }
-    };
+    } catch (error) {
+      // Error handled silently
+    }
+  };
+
+  const fetchAgendamentos = async () => {
+    try {
+      const id = await AsyncStorage.getItem("id");
+      const token = await AsyncStorage.getItem("token");
+      if (id && token) {
+        const data = await buscarAgendamentoPorId(id, token);
+        setAgendamentos(data);
+      }
+    } catch (error) {
+      // Error handled silently
+    }
+  };
+
+  const fetchSolicitacoes = async () => {
+    try {
+      const id = await AsyncStorage.getItem("id");
+      const token = await AsyncStorage.getItem("token");
+
+      if (id && token) {
+        const data = await buscarSolicitacoesporId(id, token);
+        setSolicitacoes(data);
+      }
+    } catch (error) {
+      // Error handled silently
+    }
+  };
+
+  // Carrega dados iniciais
+  useEffect(() => {
     fetchUser();
+    fetchAgendamentos();
+    fetchSolicitacoes();
   }, []);
+
+  // Atualiza dados sempre que a tela receber foco
+  useFocusEffect(
+    useCallback(() => {
+      fetchAgendamentos();
+      fetchSolicitacoes();
+    }, [])
+  );
 
   const handleLogout = async () => {
     try {
@@ -36,9 +77,35 @@ export default function Home({ navigation }) {
       await AsyncStorage.removeItem("id");
       navigation.replace("Login");
     } catch (error) {
-      console.log("Erro ao sair:", error);
+      // Error handled silently
     }
   };
+
+const contarConsultasAgendadas = () => {
+  const lista = Array.isArray(agendamentos)
+    ? agendamentos
+    : Array.isArray(agendamentos?.data)
+    ? agendamentos.data
+    : [];
+
+  const count = lista.filter(
+    (ag) => ag?.status?.toUpperCase() === "AGENDADO"
+  ).length;
+
+  return count;
+};
+
+const contarBeneficiosPendentes = () => {
+  const lista = Array.isArray(solicitacoes)
+    ? solicitacoes
+    : Array.isArray(solicitacoes?.data)
+    ? solicitacoes.data
+    : [];
+  const count = lista.filter(
+    (sol) => sol?.status?.toUpperCase() === "PENDENTE"
+  ).length;
+  return count;
+};
 
   return (
     <Fundo isHome={true} scrollable={true}>
@@ -73,7 +140,7 @@ export default function Home({ navigation }) {
             style={{ width: 17, height: 17, resizeMode: "contain" }}
           />
           <Text style={styles.statusLabel}>CONSULTAS{"\n"}AGENDADAS</Text>
-          <Text style={styles.statusNumber}>02</Text>
+          <Text style={styles.statusNumber}>{contarConsultasAgendadas()}</Text>
         </Pressable>
         
         <Pressable
@@ -97,7 +164,7 @@ export default function Home({ navigation }) {
         <View style={styles.statusBox}>
           <Image source={require("../images/icones/File_dock_search_w.png")} style={{ width: 17, height: 17, resizeMode: "contain" }} />
           <Text style={styles.statusLabel}>BENEFÍCIOS{"\n"}EM ANÁLISE</Text>
-          <Text style={styles.statusNumber}>20</Text>
+          <Text style={styles.statusNumber}>{contarBeneficiosPendentes()}</Text>
         </View>
       </View>
         </View>
@@ -236,4 +303,3 @@ const styles = StyleSheet.create({
   },
 });
 
- 

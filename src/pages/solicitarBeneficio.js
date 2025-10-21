@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
+import { useNavigation } from '@react-navigation/native';
 
 import Fundo from '../components/fundo';
 import TituloIcone from '../components/tituloIcone';
@@ -37,6 +38,8 @@ const paymentMap = {
 };
 
 export default function SolicitarBeneficio() {
+  const navigation = useNavigation();
+  
   const [colaboradores, setColaboradores] = useState([]);
   const [selectedColaborador, setSelectedColaborador] = useState(null);
 
@@ -113,20 +116,13 @@ export default function SolicitarBeneficio() {
 
   const handleEnviarDocumento = async () => {
     try {
-      console.log('🔍 Iniciando seleção de documento...');
-      console.log('🌐 Platform.OS:', Platform.OS);
-
       const res = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
         multiple: false,
         copyToCacheDirectory: true,
       });
 
-      console.log('📥 Resultado COMPLETO do DocumentPicker:');
-      console.log(JSON.stringify(res, null, 2));
-
       if (res.canceled || res.cancelled) {
-        console.log('❌ Seleção cancelada pelo usuário');
         return;
       }
 
@@ -135,7 +131,6 @@ export default function SolicitarBeneficio() {
       
       if (res.assets && res.assets.length > 0) {
         file = res.assets[0];
-        console.log('📂 Usando res.assets[0]');
       } else if (res.uri) {
         // Versão mais antiga do expo-document-picker
         file = {
@@ -144,28 +139,15 @@ export default function SolicitarBeneficio() {
           size: res.size,
           mimeType: res.mimeType || res.type
         };
-        console.log('📂 Usando res direto (formato antigo)');
       }
 
-      if (!file) {
-        console.log('❌ Nenhum arquivo encontrado na resposta');
-        Alert.alert('Erro', 'Nenhum arquivo selecionado');
-        return;
-      }
-
-      console.log('📄 Arquivo extraído:');
-      console.log(JSON.stringify(file, null, 2));
-
-      // Validar propriedades essenciais
-      if (!file.uri) {
-        console.log('❌ Arquivo sem URI');
-        Alert.alert('Erro', 'Arquivo inválido - sem URI');
+      if (!file || !file.uri) {
+        Alert.alert('Erro', 'Arquivo inválido');
         return;
       }
 
       // Validações de tamanho
       if (typeof file.size === 'number' && file.size > MAX_FILE_SIZE) {
-        console.log(`❌ Arquivo muito grande: ${file.size} bytes`);
         return Alert.alert('Arquivo muito grande', 'Envie um arquivo de até 10 MB.');
       }
 
@@ -185,12 +167,10 @@ export default function SolicitarBeneficio() {
           'webp': 'image/webp'
         };
         mimeType = mimeMap[ext] || 'application/octet-stream';
-        console.log(`🔍 MIME type inferido pela extensão "${ext}": ${mimeType}`);
       }
 
       // Validar MIME type
       if (mimeType && !ACCEPTED_MIME.includes(mimeType) && !mimeType.startsWith('image/')) {
-        console.log(`❌ MIME type não permitido: ${mimeType}`);
         return Alert.alert('Tipo não permitido', 'Envie PDF, JPG ou PNG.');
       }
 
@@ -201,7 +181,6 @@ export default function SolicitarBeneficio() {
         const ext = mimeType === 'application/pdf' ? 'pdf' : 
                    mimeType.startsWith('image/') ? 'jpg' : 'file';
         fileName = `documento_${timestamp}.${ext}`;
-        console.log(`📝 Nome gerado automaticamente: ${fileName}`);
       }
 
       // Tratamento especial para web
@@ -213,50 +192,24 @@ export default function SolicitarBeneficio() {
       };
 
       // Na web, às vezes precisa de tratamento especial da URI
-      if (Platform.OS === 'web') {
-        console.log('🌐 Processamento especial para web');
-        
-        // Se a URI não parece válida para web, tenta outras propriedades
-        if (!file.uri.startsWith('blob:') && !file.uri.startsWith('data:')) {
-          console.log('⚠️ URI pode ser inválida para web:', file.uri);
-          
-          // Tenta usar outras propriedades disponíveis
-          if (file.file) {
-            console.log('🔄 Tentando usar file.file');
-            processedFile.file = file.file;
-          }
-        }
-
-        // Log adicional para debug na web
-        console.log('🌐 Propriedades do arquivo na web:');
-        Object.keys(file).forEach(key => {
-          console.log(`  ${key}:`, typeof file[key], file[key]);
-        });
+      if (Platform.OS === 'web' && file.file) {
+        processedFile.file = file.file;
       }
-
-      console.log('✅ Documento processado final:');
-      console.log(JSON.stringify(processedFile, null, 2));
 
       setDocumento(processedFile);
       Alert.alert('Documento selecionado', `${processedFile.name} selecionado com sucesso!`);
 
     } catch (e) {
-      console.error('❌ Erro ao selecionar documento:');
-      console.error('❌ Erro completo:', e);
-      console.error('❌ Stack trace:', e.stack);
       Alert.alert('Erro', `Não foi possível selecionar o documento: ${e.message}`);
     }
   };
 
   const handleRemoverDocumento = () => {
-    console.log('🗑️ Removendo documento');
     setDocumento(null);
   };
 
   const handleSolicitar = async () => {
     if (submitting) return;
-
-    console.log('🚀 Iniciando solicitação...');
 
     // ===== validações obrigatórias =====
     if (!selectedColaborador) return Alert.alert('Atenção', 'Selecione para quem será o benefício.');
@@ -294,19 +247,11 @@ export default function SolicitarBeneficio() {
       ...(idDependente ? { idDependente } : {}),
     };
 
-    console.log('📤 Payload da solicitação:');
-    console.log(JSON.stringify(payload, null, 2));
-    console.log('📎 Documento a ser enviado:');
-    console.log(JSON.stringify(documento, null, 2));
-
     try {
       setSubmitting(true);
 
       // 1) Criar solicitação
-      console.log('📝 Criando solicitação...');
       const created = await criarSolicitacao(payload, token);
-      console.log('✅ Solicitação criada:');
-      console.log(JSON.stringify(created, null, 2));
 
       const solicitacaoId =
         created?.id || created?.solicitacaoId || created?.data?.id;
@@ -314,8 +259,6 @@ export default function SolicitarBeneficio() {
       if (!solicitacaoId) {
         throw new Error('ID da solicitação não retornado pela API');
       }
-
-      console.log('🆔 ID da solicitação extraído:', solicitacaoId);
 
       // 2) Preparar arquivo para upload
       const fileToSend = {
@@ -329,13 +272,6 @@ export default function SolicitarBeneficio() {
         fileToSend.file = documento.file;
       }
 
-      console.log('📤 Enviando documento...');
-      console.log('📎 Dados do arquivo para upload:');
-      console.log(JSON.stringify(fileToSend, null, 2));
-      console.log('🆔 ID da solicitação:', solicitacaoId);
-      console.log('👤 ID do colaborador:', titularId);
-      console.log('🌐 Platform:', Platform.OS);
-
       // 3) Upload do documento
       const uploadParams = {
         solicitacaoId,
@@ -343,37 +279,32 @@ export default function SolicitarBeneficio() {
         file: fileToSend,
       };
 
-      console.log('📤 Parâmetros do upload:');
-      console.log(JSON.stringify(uploadParams, null, 2));
+      await uploadDoc(uploadParams, token);
 
-      const uploadResult = await uploadDoc(uploadParams, token);
-
-      console.log('✅ Upload concluído:');
-      console.log(JSON.stringify(uploadResult, null, 2));
-
-      Alert.alert('Sucesso', 'Solicitação criada e documento enviado com sucesso!');
-      
-      // Reset do formulário
-      setSelectedColaborador(null);
-      setSelectedBeneficio(null);
-      setValor('');
-      setTipo('');
-      setSelectedParcela(null);
-      setDescricao('');
-      setDocumento(null);
+      Alert.alert(
+        'Sucesso', 
+        'Solicitação criada e documento enviado com sucesso!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Reset do formulário
+              setSelectedColaborador(null);
+              setSelectedBeneficio(null);
+              setValor('');
+              setTipo('');
+              setSelectedParcela(null);
+              setDescricao('');
+              setDocumento(null);
+              
+              // Volta para a Home
+              navigation.navigate('Home');
+            }
+          }
+        ]
+      );
 
     } catch (err) {
-      console.error('❌ Erro ao solicitar benefício:');
-      console.error('❌ Erro completo:', err);
-      console.error('❌ Stack trace:', err.stack);
-      
-      // Log adicional para entender melhor o erro
-      if (err.response) {
-        console.error('❌ Response data:', err.response.data);
-        console.error('❌ Response status:', err.response.status);
-        console.error('❌ Response headers:', err.response.headers);
-      }
-      
       let errorMessage = 'Falha ao enviar a solicitação.';
       if (err.message) {
         errorMessage = err.message;

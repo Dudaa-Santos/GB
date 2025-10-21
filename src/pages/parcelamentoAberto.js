@@ -14,7 +14,6 @@ export default function ParcelamentoAberto() {
     // Função para buscar parcelas abertas
     const fetchParcelas = async () => {
         try {
-            console.log("🚀 Iniciando fetchParcelas...");
             setLoading(true);
             setError(null);
             
@@ -31,10 +30,7 @@ export default function ParcelamentoAberto() {
                 return;
             }
             
-            console.log("📞 Chamando buscarParcelasAbertas com ID:", id);
             const response = await buscarParcelasAbertas(id, token);
-            
-            console.log("📥 Resposta completa de parcelas:", JSON.stringify(response, null, 2));
             
             // Extrai os dados da estrutura da API
             let parcelasArray = [];
@@ -47,21 +43,12 @@ export default function ParcelamentoAberto() {
             } else if (response && Array.isArray(response.parcelas)) {
                 parcelasArray = response.parcelas;
             } else {
-                console.log("⚠️ Estrutura de resposta não reconhecida:", response);
                 parcelasArray = [];
             }
-            
-            console.log("📊 Parcelas processadas:", parcelasArray);
-            
-            // Log de cada parcela individual
-            parcelasArray.forEach((parcela, index) => {
-                console.log(`💰 Parcela ${index + 1}:`, JSON.stringify(parcela, null, 2));
-            });
             
             setParcelas(parcelasArray);
             
         } catch (error) {
-            console.error("❌ Erro ao buscar parcelas:", error);
             setError(`Erro ao carregar parcelas: ${error.message}`);
             Alert.alert("Erro", `Não foi possível carregar as parcelas: ${error.message}`);
         } finally {
@@ -213,18 +200,14 @@ export default function ParcelamentoAberto() {
 
                 {/* Lista de parcelas */}
                 <View style={styles.parcelasContainer}>
-                    {parcelas.map((parcela, index) => {
-                        console.log(`🎯 Renderizando parcela ${index + 1}:`, parcela);
-                        
-                        return (
-                            <ListParcela
-                                key={parcela.id || index}
-                                nomeParcela={getNomeParcela(parcela)}
-                                quantidadeParcela={getQuantidadeParcela(parcela)}
-                                valorParcela={getValorParcela(parcela)}
-                            />
-                        );
-                    })}
+                    {parcelas.map((parcela, index) => (
+                        <ListParcela
+                            key={parcela.id || index}
+                            nomeParcela={getNomeParcela(parcela)}
+                            quantidadeParcela={getQuantidadeParcela(parcela)}
+                            valorParcela={getValorParcela(parcela)}
+                        />
+                    ))}
                 </View>
 
                 {/* Footer informativo */}

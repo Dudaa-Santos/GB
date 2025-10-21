@@ -21,7 +21,6 @@ export default function Historico() {
     // Função para buscar solicitações (benefícios)
     const fetchSolicitacoes = async () => {
         try {
-            console.log("🚀 Iniciando fetchSolicitacoes...");
             setLoading(true);
             setError(null);
             
@@ -57,7 +56,6 @@ export default function Historico() {
             setSolicitacoes(Array.isArray(solicitacoesArray) ? solicitacoesArray : []);
             
         } catch (error) {
-            console.error("❌ Erro ao buscar solicitações:", error);
             setError(`Erro ao carregar solicitações: ${error.message}`);
         } finally {
             setLoading(false);
@@ -66,8 +64,6 @@ export default function Historico() {
 
     // Função para obter nome do paciente da consulta
     const getPacienteNome = (consulta) => {
-        console.log("🔍 Debug getPacienteNome:", consulta);
-        
         // Verifica se é dependente
         if (consulta.dependente && consulta.dependente.nome) {
             return consulta.dependente.nome;
@@ -78,19 +74,15 @@ export default function Historico() {
             return consulta.colaborador.nome;
         }
         
-        console.log("⚠️ Nome do paciente não encontrado para:", consulta);
         return "Paciente não informado";
     };
 
     // Função para obter nome do médico
     const getMedicoNome = (consulta) => {
-        console.log("🔍 Debug getMedicoNome:", consulta);
-        
         if (consulta.medico && consulta.medico.nome) {
             return consulta.medico.nome;
         }
         
-        console.log("⚠️ Nome do médico não encontrado para:", consulta);
         return "Médico não informado";
     };
 
@@ -108,7 +100,6 @@ export default function Historico() {
     // Função para buscar consultas (agendamentos)
     const fetchConsultas = async () => {
         try {
-            console.log("🚀 Iniciando fetchConsultas...");
             setLoadingConsultas(true);
             setErrorConsultas(null);
             
@@ -125,10 +116,7 @@ export default function Historico() {
                 return;
             }
             
-            console.log("📞 Chamando buscarAgendamentoPorId com ID:", id);
             const response = await buscarAgendamentoPorId(id, token);
-            
-            console.log("📥 Resposta completa de consultas:", JSON.stringify(response, null, 2));
             
             // A resposta deve ser um array direto baseado na estrutura fornecida
             let consultasArray = [];
@@ -139,21 +127,12 @@ export default function Historico() {
             } else if (response && response.success && Array.isArray(response.data)) {
                 consultasArray = response.data;
             } else {
-                console.log("⚠️ Estrutura de resposta não reconhecida:", response);
                 consultasArray = [];
             }
-            
-            console.log("📊 Consultas processadas:", consultasArray);
-            
-            // Log de cada consulta individual
-            consultasArray.forEach((consulta, index) => {
-                console.log(`📝 Consulta ${index + 1}:`, JSON.stringify(consulta, null, 2));
-            });
             
             setConsultas(consultasArray);
             
         } catch (error) {
-            console.error("❌ Erro ao buscar consultas:", error);
             setErrorConsultas(`Erro ao carregar consultas: ${error.message}`);
         } finally {
             setLoadingConsultas(false);
@@ -241,7 +220,6 @@ export default function Historico() {
                 solicitacao: solicitacaoSerializavel
             });
         } catch (error) {
-            console.error("Erro ao navegar:", error);
             navigation.navigate("DetalheBeneficio", { 
                 solicitacao: {
                     id: solicitacao.id,
@@ -337,8 +315,6 @@ export default function Historico() {
         return (
             <View>
                 {consultas.map((consulta, index) => {
-                    console.log(`🎯 Renderizando consulta ${index + 1}:`, consulta);
-                    
                     const paciente = getPacienteNome(consulta);
                     const medico = getMedicoNome(consulta);
                     const tipoPaciente = getTipoPaciente(consulta);
