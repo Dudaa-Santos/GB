@@ -269,19 +269,35 @@ export const buscarParcelasAbertas = async (ColaboradorId, token) => {
 
 export const chatBotMessage = async (mensagem, token) => {
   try {
-    const response = await httpClient.post(`/chat`, 
-      { mensagem }, // Envia a mensagem do usuário no body
+    const response = await httpClient.post(
+      "/chat",
+      { mensagem },
       {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json",
+        },
       }
     );
-    return response.data;
+
+    const data = response.data;
+
+    // Normaliza formatos comuns de resposta da API
+    // Retorna um objeto com a propriedade `message` para compatibilidade com chat.js
+    if (!data) return { message: "Resposta vazia do servidor" };
+
+    if (typeof data === "string") return { message: data };
+    if (data.message) return data;
+    if (data.resposta) return { message: data.resposta, ...data };
+    if (data.data && (data.data.message || data.data.resposta)) {
+      return { message: data.data.message || data.data.resposta, ...data.data };
+    }
+
+    // fallback: transforma o corpo em string
+    return { message: JSON.stringify(data) };
   } catch (error) {
-    if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao buscar mensagens do chatbot");
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message || "Erro ao buscar resposta do chatbot");
     }
     throw new Error("Falha de conexão com o servidor");
   }

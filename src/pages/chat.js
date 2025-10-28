@@ -77,9 +77,10 @@ export default function Chat() {
     // *** chama o chatbot
     setIsLoading(true);
     try {
-      // Busca o token do AsyncStorage
-      const token = await AsyncStorage.getItem("@auth_token");
-      
+      // Busca o token (mesmo jeito que na segunda tela)
+      const token = await AsyncStorage.getItem("token");
+      const id = await AsyncStorage.getItem("id"); // caso precise do id mais tarde
+
       if (!token) {
         throw new Error("Token não encontrado. Faça login novamente.");
       }
