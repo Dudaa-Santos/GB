@@ -266,3 +266,23 @@ export const buscarParcelasAbertas = async (ColaboradorId, token) => {
     throw new Error("Falha de conexão com o servidor");
   }
 };
+
+export const chatBotMessage = async (mensagem, token) => {
+  try {
+    const response = await httpClient.post(`/chat`, 
+      { mensagem }, // Envia a mensagem do usuário no body
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.message || "Erro ao buscar mensagens do chatbot");
+    }
+    throw new Error("Falha de conexão com o servidor");
+  }
+}
