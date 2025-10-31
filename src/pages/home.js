@@ -107,6 +107,21 @@ const contarBeneficiosPendentes = () => {
   return count;
 };
 
+const contarAssinaturasPendentes = () => {
+  const lista = Array.isArray(solicitacoes)
+    ? solicitacoes
+    : Array.isArray(solicitacoes?.data)
+    ? solicitacoes.data
+    : [];
+
+  const count = lista.filter(
+    (sol) => sol?.status?.toUpperCase() === "PENDENTE_ASSINATURA"
+  ).length;
+
+  return count;
+};
+
+
   return (
     <Fundo isHome={true} scrollable={true}>
       <View style={styles.content}>
@@ -158,7 +173,7 @@ const contarBeneficiosPendentes = () => {
             style={{ width: 17, height: 17, resizeMode: "contain" }}
           />
           <Text style={styles.statusLabel}>ASSINATURAS{"\n"}PENDENTES</Text>
-          <Text style={styles.statusNumber}>12</Text>
+          <Text style={styles.statusNumber}>{contarAssinaturasPendentes()}</Text>
         </Pressable>
 
         <View style={styles.statusBox}>
