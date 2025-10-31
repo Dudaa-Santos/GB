@@ -1,8 +1,20 @@
 // src/components/MessageBubble.jsx
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
 
-export default function MessageBubble({ text, fromUser, time }) {
+export default function MessageBubble({ text, fromUser, time, typing }) {
+  // caso seja a bolha "digitando..."
+  if (typing) {
+    return (
+      <View style={[styles.wrapper, styles.wrapperBot]}>
+        <View style={[styles.bubble, styles.bubbleBot, styles.typingBubble]}>
+          <TypingDots />
+        </View>
+      </View>
+    );
+  }
+
+  // mensagem normal
   return (
     <View
       style={[
@@ -16,7 +28,9 @@ export default function MessageBubble({ text, fromUser, time }) {
           fromUser ? styles.bubbleUser : styles.bubbleBot,
         ]}
       >
-        <Text style={[styles.text, fromUser ? styles.textUser : styles.textBot]}>
+        <Text
+          style={[styles.text, fromUser ? styles.textUser : styles.textBot]}
+        >
           {text}
         </Text>
 
@@ -29,6 +43,53 @@ export default function MessageBubble({ text, fromUser, time }) {
           {time}
         </Text>
       </View>
+    </View>
+  );
+}
+
+function TypingDots() {
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const createAnimation = (value, delay) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(value, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(value, {
+            toValue: 0.3,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+
+    const anim1 = createAnimation(dot1, 0);
+    const anim2 = createAnimation(dot2, 200);
+    const anim3 = createAnimation(dot3, 400);
+
+    anim1.start();
+    anim2.start();
+    anim3.start();
+
+    return () => {
+      anim1.stop();
+      anim2.stop();
+      anim3.stop();
+    };
+  }, [dot1, dot2, dot3]);
+
+  return (
+    <View style={styles.dotsContainer}>
+      <Animated.View style={[styles.dot, { opacity: dot1 }]} />
+      <Animated.View style={[styles.dot, { opacity: dot2 }]} />
+      <Animated.View style={[styles.dot, { opacity: dot3 }]} />
     </View>
   );
 }
@@ -62,6 +123,12 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
 
+  typingBubble: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 70,
+  },
+
   text: {
     fontSize: 15,
     lineHeight: 20,
@@ -80,4 +147,17 @@ const styles = StyleSheet.create({
   },
   timeUser: { color: "rgba(255,255,255,0.7)" },
   timeBot: { color: "#6B7280" },
+
+  dotsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#6B7280",
+  },
 });

@@ -267,11 +267,20 @@ export const buscarParcelasAbertas = async (ColaboradorId, token) => {
   }
 };
 
-export const chatBotMessage = async (mensagem, token) => {
+export const chatBotMessage = async (mensagem, token, conversationId = null) => {
   try {
+    const body = {
+      mensagem,
+    };
+
+    // se já existe conversa anterior, manda pro back
+    if (conversationId) {
+      body.conversationId = conversationId;
+    }
+
     const response = await httpClient.post(
       "/chat",
-      { mensagem },
+      body,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -280,25 +289,14 @@ export const chatBotMessage = async (mensagem, token) => {
       }
     );
 
-    const data = response.data;
-
-    // Normaliza formatos comuns de resposta da API
-    // Retorna um objeto com a propriedade `message` para compatibilidade com chat.js
-    if (!data) return { message: "Resposta vazia do servidor" };
-
-    if (typeof data === "string") return { message: data };
-    if (data.message) return data;
-    if (data.resposta) return { message: data.resposta, ...data };
-    if (data.data && (data.data.message || data.data.resposta)) {
-      return { message: data.data.message || data.data.resposta, ...data.data };
-    }
-
-    // fallback: transforma o corpo em string
-    return { message: JSON.stringify(data) };
+    // aqui o back te devolve aquele objeto grandão (success, data, etc)
+    return response.data;
   } catch (error) {
     if (error.response && error.response.data) {
-      throw new Error(error.response.data.message || "Erro ao buscar resposta do chatbot");
+      throw new Error(
+        error.response.data.message || "Erro ao buscar resposta do chatbot"
+      );
     }
     throw new Error("Falha de conexão com o servidor");
   }
-}
+};
