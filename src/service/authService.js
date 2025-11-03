@@ -300,3 +300,98 @@ export const chatBotMessage = async (mensagem, token, conversationId = null) => 
     throw new Error("Falha de conexão com o servidor");
   }
 };
+
+export const uploadChatDocument = async ({ file, conversationId, pendingData }, token) => {
+  try {
+    console.log("=== uploadChatDocument: INÍCIO ===");
+    console.log("Arquivo recebido:", {
+      uri: file.uri,
+      name: file.name,
+      mimeType: file.mimeType,
+      type: file.type,
+      size: file.size,
+    });
+    console.log("ConversationId:", conversationId);
+    console.log("PendingData:", pendingData);
+    console.log("Token COMPLETO recebido:", token); // Mostra o token completo para debug
+    
+    if (!token) {
+      throw new Error("Token não foi fornecido para uploadChatDocument");
+    }
+
+    const formData = new FormData();
+
+    const fileToUpload = {
+      uri: file.uri,
+      name: file.name || "documento",
+      type: file.mimeType || file.type || "application/octet-stream",
+    };
+
+    console.log("Objeto do arquivo no FormData:", fileToUpload);
+    formData.append("file", fileToUpload);
+
+    if (conversationId) {
+      console.log("Adicionando conversationId ao FormData:", conversationId);
+      formData.append("conversationId", String(conversationId));
+    }
+
+    if (pendingData) {
+      console.log("Adicionando pendingData ao FormData:", pendingData);
+      formData.append("pendingData", JSON.stringify(pendingData)); // Mudei para JSON.stringify caso seja objeto
+    }
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data",
+    };
+
+    console.log("Headers que serão enviados:", JSON.stringify(headers, null, 2));
+    console.log("Fazendo requisição POST para /chat/upload...");
+
+    const response = await httpClient.post("/chat/upload", formData, {
+      headers: headers,
+      timeout: 60000, // 60 segundos para upload
+    });
+
+    console.log("Resposta recebida:");
+    console.log("Status:", response.status);
+    console.log("Data:", JSON.stringify(response.data, null, 2));
+    console.log("=== uploadChatDocument: FIM (SUCESSO) ===");
+
+    return response.data;
+  } catch (error) {
+    console.error("=== uploadChatDocument: ERRO ===");
+    console.error("Tipo:", error.constructor.name);
+    console.error("Mensagem:", error.message);
+
+    if (error?.response) {
+      console.error("Response Status:", error.response.status);
+      console.error("Response StatusText:", error.response.statusText);
+      console.error("Response Data:", JSON.stringify(error.response.data, null, 2));
+      console.error("Response Headers:", JSON.stringify(error.response.headers, null, 2));
+      
+      // Verifica se é erro de autenticação
+      if (error.response.status === 401) {
+        console.error("ERRO 401: Token inválido, ausente ou expirado");
+        console.error("Verifique se o token está sendo enviado corretamente no header");
+      }
+      
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Erro HTTP ${error.response.status}: ${error.response.statusText || 'Erro desconhecido'}`
+      );
+    }
+
+    if (error?.request) {
+      console.error("Request feito mas sem resposta do servidor");
+      console.error("Request:", error.request);
+      throw new Error("Sem resposta do servidor. Verifique sua conexão.");
+    }
+
+    console.error("Stack:", error.stack);
+    console.error("=== uploadChatDocument: FIM (ERRO) ===");
+
+    throw new Error(error.message || "Falha de conexão com o servidor");
+  }
+};

@@ -16,9 +16,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as DocumentPicker from "expo-document-picker";
 import MessageBubble from "../components/MessageBubble";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { chatBotMessage } from "../service/authService";
+import { chatBotMessage, uploadChatDocument } from "../service/authService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -31,16 +32,21 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversa, setConversa] = useState([]);
   const [conversationId, setConversationId] = useState(null);
+  const [pendingData, setPendingData] = useState(null);
   const [primeiroUso, setPrimeiroUso] = useState(true);
+  const [inputHeight, setInputHeight] = useState(0);
+  const [awaitingUpload, setAwaitingUpload] = useState(false);
   const listRef = useRef(null);
 
   useEffect(() => {
     const show = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hide = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
     const showSub = Keyboard.addListener(show, (e) => {
       setKbHeight(e.endCoordinates?.height ?? 0);
     });
     const hideSub = Keyboard.addListener(hide, () => setKbHeight(0));
+
     return () => {
       showSub.remove();
       hideSub.remove();
@@ -54,6 +60,151 @@ export default function Chat() {
     return `${h}:${m}`;
   }
 
+  // ---------- ENVIAR DOCUMENTO (/chat/upload) ----------
+  const handleEnviarDocumento = async () => {
+    try {
+      console.log("=== INICIANDO UPLOAD DE DOCUMENTO ===");
+      
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+
+      console.log("Resultado do DocumentPicker:", JSON.stringify(result, null, 2));
+
+      if (result.canceled) {
+        console.log("Upload cancelado pelo usuário");
+        return;
+      }
+
+      const file = result.assets?.[0];
+      if (!file) {
+        console.error("Nenhum arquivo selecionado");
+        return;
+      }
+
+      console.log("Arquivo selecionado:", {
+        name: file.name,
+        size: file.size,
+        mimeType: file.mimeType,
+        uri: file.uri,
+      });
+
+      // mostra no chat o arquivo selecionado
+      const msgDocumento = {
+        id: Date.now().toString(),
+        text: `📎 ${file.name}`,
+        fromUser: true,
+        time: getHoraAgora(),
+      };
+      setConversa((prev) => [...prev, msgDocumento]);
+
+      setIsLoading(true);
+
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        console.error("Token não encontrado no AsyncStorage");
+        throw new Error("Token não encontrado. Faça login novamente.");
+      }
+
+      console.log("Token recuperado:", token.substring(0, 20) + "...");
+      console.log("ConversationId atual:", conversationId);
+      console.log("PendingData atual:", pendingData);
+
+      console.log("Chamando uploadChatDocument...");
+      const respostaUpload = await uploadChatDocument(
+        { file, conversationId, pendingData },
+        token
+      );
+
+      console.log("Resposta do upload:", JSON.stringify(respostaUpload, null, 2));
+
+      const payload = respostaUpload?.data ?? respostaUpload;
+      console.log("Payload extraído:", JSON.stringify(payload, null, 2));
+
+      const novoConversationId = payload?.conversationId || conversationId;
+      console.log("Novo conversationId:", novoConversationId);
+      setConversationId(novoConversationId);
+
+      const novoPendingData = payload?.pendingData ?? null;
+      console.log("Novo pendingData:", novoPendingData);
+      setPendingData(novoPendingData);
+
+      const nextAction = payload?.nextAction || null;
+      console.log("NextAction recebido:", nextAction);
+      setAwaitingUpload(nextAction === "AWAITING_UPLOAD");
+
+      const textoRespostaDoBot =
+        payload?.resposta ??
+        payload?.message ??
+        JSON.stringify(respostaUpload);
+
+      console.log("Texto resposta do bot:", textoRespostaDoBot);
+
+      if (textoRespostaDoBot) {
+        const respostaBot = {
+          id: (Date.now() + 1).toString(),
+          text: textoRespostaDoBot,
+          fromUser: false,
+          time: getHoraAgora(),
+        };
+        setConversa((prev) => [...prev, respostaBot]);
+      }
+
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+
+      console.log("=== UPLOAD CONCLUÍDO COM SUCESSO ===");
+    } catch (error) {
+      console.error("=== ERRO NO UPLOAD DE DOCUMENTO ===");
+      console.error("Tipo do erro:", error.constructor.name);
+      console.error("Mensagem:", error.message);
+      console.error("Stack:", error.stack);
+
+      // Erros da requisição HTTP
+      if (error.response) {
+        console.error("=== ERRO DA RESPOSTA HTTP ===");
+        console.error("Status:", error.response.status);
+        console.error("Status Text:", error.response.statusText);
+        console.error("Headers:", JSON.stringify(error.response.headers, null, 2));
+        console.error("Data:", JSON.stringify(error.response.data, null, 2));
+      }
+
+      // Erro na requisição (não chegou no servidor)
+      if (error.request) {
+        console.error("=== ERRO NA REQUISIÇÃO (SEM RESPOSTA) ===");
+        console.error("Request:", error.request);
+      }
+
+      // Erro de configuração
+      if (error.config) {
+        console.error("=== CONFIGURAÇÃO DA REQUISIÇÃO ===");
+        console.error("URL:", error.config.url);
+        console.error("Method:", error.config.method);
+        console.error("Headers:", JSON.stringify(error.config.headers, null, 2));
+        console.error("Params:", JSON.stringify(error.config.params, null, 2));
+      }
+
+      const msgErro = error.response?.data?.message || error.message || "Erro desconhecido";
+      
+      const respostaErro = {
+        id: (Date.now() + 1).toString(),
+        text: `❌ Erro ao enviar documento: ${msgErro}`,
+        fromUser: false,
+        time: getHoraAgora(),
+      };
+      setConversa((prev) => [...prev, respostaErro]);
+      setAwaitingUpload(false);
+
+      console.error("=== FIM DO LOG DE ERRO ===");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ---------- ENVIAR MENSAGEM DE TEXTO (/chat) ----------
   const handleEnviar = async (textOverride) => {
     const textoUsuario = (textOverride ?? mensagem).trim();
     if (!textoUsuario) return;
@@ -68,23 +219,39 @@ export default function Chat() {
     setMensagem("");
     setIsLoading(true);
 
+    setTimeout(() => {
+      listRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+
     const typingId = `typing-${Date.now()}`;
     setConversa((prev) => [
       ...prev,
       { id: typingId, typing: true, fromUser: false, time: "" },
     ]);
 
+    setTimeout(() => {
+      listRef.current?.scrollToEnd({ animated: true });
+    }, 300);
+
     try {
       const token = await AsyncStorage.getItem("token");
       if (!token) throw new Error("Token não encontrado. Faça login novamente.");
 
       const resposta = await chatBotMessage(textoUsuario, token, conversationId);
-      const novoConversationId = resposta?.data?.conversationId || conversationId;
+
+      const payload = resposta?.data ?? resposta;
+
+      const novoConversationId = payload?.conversationId || conversationId;
       setConversationId(novoConversationId);
 
+      setPendingData(payload?.pendingData ?? null);
+
+      const nextAction = payload?.nextAction || null;
+      setAwaitingUpload(nextAction === "AWAITING_UPLOAD");
+
       const textoRespostaDoBot =
-        resposta?.data?.resposta ??
-        resposta?.data?.message ??
+        payload?.resposta ??
+        payload?.message ??
         JSON.stringify(resposta);
 
       const respostaBot = {
@@ -98,6 +265,10 @@ export default function Chat() {
         const semTyping = prev.filter((m) => !m.typing);
         return [...semTyping, respostaBot];
       });
+
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 150);
     } catch (error) {
       console.error("Erro ao chamar chatbot:", error);
       const respostaErro = {
@@ -110,6 +281,12 @@ export default function Chat() {
         const semTyping = prev.filter((m) => !m.typing);
         return [...semTyping, respostaErro];
       });
+
+      setAwaitingUpload(false);
+
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 150);
     } finally {
       setIsLoading(false);
     }
@@ -122,9 +299,8 @@ export default function Chat() {
   };
 
   const EmptyState = () => {
-    // Ajusta tamanho da mascote baseado na altura da tela
     const mascoteSize = Math.min(SCREEN_HEIGHT * 0.35, 300);
-    
+
     return (
       <View style={styles.emptyWrap}>
         <Image
@@ -197,63 +373,91 @@ export default function Chat() {
       </View>
 
       {/* LISTA DE MENSAGENS */}
-      <FlatList
-        ref={listRef}
-        data={conversa}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MessageBubble
-            text={item.text}
-            fromUser={item.fromUser}
-            time={item.time}
-            typing={item.typing}
-          />
-        )}
-        ListEmptyComponent={<EmptyState />}
-        contentContainerStyle={[
-          styles.listContent,
-          conversa.length === 0 && { flex: 1, justifyContent: "space-between" },
-        ]}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-      />
+      <View style={{ flex: 1 }}>
+        <FlatList
+          ref={listRef}
+          data={conversa}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <MessageBubble
+              text={item.text}
+              fromUser={item.fromUser}
+              time={item.time}
+              typing={item.typing}
+            />
+          )}
+          ListEmptyComponent={<EmptyState />}
+          contentContainerStyle={[
+            styles.listContent,
+            conversa.length === 0 && { flex: 1, justifyContent: "space-between" },
+          ]}
+          onContentSizeChange={() => {
+            setTimeout(() => {
+              listRef.current?.scrollToEnd({ animated: true });
+            }, 150);
+          }}
+          onLayout={() => {
+            if (conversa.length > 0) {
+              setTimeout(() => {
+                listRef.current?.scrollToEnd({ animated: false });
+              }, 150);
+            }
+          }}
+          maintainVisibleContentPosition={null}
+          removeClippedSubviews={false}
+        />
+      </View>
 
-      {/* INPUT */}
+      {/* INPUT / DOCUMENTO */}
       <View
         style={[
           styles.inputContainer,
           {
-            position: "absolute",
-            left: 0,
-            right: 0,
             bottom: kbHeight > 0 ? kbHeight : insets.bottom,
           },
         ]}
+        onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
       >
+        {/* Campo de texto sempre visível, mas bloqueado quando awaitingUpload */}
         <TextInput
           style={[
             styles.input,
-            primeiroUso && styles.inputDisabled,
+            (primeiroUso || awaitingUpload) && styles.inputDisabled,
           ]}
-          placeholder={primeiroUso ? "Selecione uma ação rápida acima..." : "Digite sua mensagem..."}
+          placeholder={
+            primeiroUso
+              ? "Selecione uma ação rápida acima..."
+              : awaitingUpload
+              ? "Envie o documento solicitado..."
+              : "Digite sua mensagem..."
+          }
           placeholderTextColor="#9CA3AF"
           value={mensagem}
           onChangeText={setMensagem}
           multiline
           maxLength={1000}
-          editable={!isLoading && !primeiroUso}
+          editable={!isLoading && !primeiroUso && !awaitingUpload}
         />
 
+        {/* Botão à direita: seta normal ou clipe */}
         <Pressable
           style={[
             styles.sendButton,
-            (!mensagem.trim() || isLoading || primeiroUso) && styles.sendButtonDisabled,
+            ((awaitingUpload && isLoading) ||
+              (!awaitingUpload &&
+                (!mensagem.trim() || isLoading || primeiroUso))) &&
+              styles.sendButtonDisabled,
           ]}
-          onPress={() => handleEnviar()}
-          disabled={!mensagem.trim() || isLoading || primeiroUso}
+          onPress={awaitingUpload ? handleEnviarDocumento : () => handleEnviar()}
+          disabled={
+            awaitingUpload ? isLoading : !mensagem.trim() || isLoading || primeiroUso
+          }
           hitSlop={10}
         >
           {isLoading ? (
             <ActivityIndicator color="#fff" size="small" />
+          ) : awaitingUpload ? (
+            <Icon name="paperclip" size={SCREEN_WIDTH * 0.06} color="#fff" />
           ) : (
             <Text style={styles.sendButtonText}>➤</Text>
           )}
@@ -265,6 +469,7 @@ export default function Chat() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFEF6" },
+
   headerChat: {
     flexDirection: "row",
     alignItems: "center",
@@ -276,27 +481,28 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(255,255,255,0.1)",
   },
   backButtonText: { color: "#fff", fontSize: 24, fontWeight: "bold" },
-  avatar: { 
-    width: SCREEN_WIDTH * 0.11, 
-    height: SCREEN_WIDTH * 0.11, 
-    borderRadius: 100, 
-    backgroundColor: "#fff" 
+  avatar: {
+    width: SCREEN_WIDTH * 0.11,
+    height: SCREEN_WIDTH * 0.11,
+    borderRadius: 100,
+    backgroundColor: "#fff",
   },
-  nome: { 
-    color: "#fff", 
-    fontSize: SCREEN_WIDTH * 0.04, 
-    fontWeight: "bold" 
+  nome: {
+    color: "#fff",
+    fontSize: SCREEN_WIDTH * 0.04,
+    fontWeight: "bold",
   },
-  status: { 
-    color: "#d1fae5", 
-    fontSize: SCREEN_WIDTH * 0.035 
-  },
-  listContent: { 
-    padding: SCREEN_WIDTH * 0.04, 
-    paddingBottom: SCREEN_HEIGHT * 0.12 
+  status: {
+    color: "#d1fae5",
+    fontSize: SCREEN_WIDTH * 0.035,
   },
 
-  // ----- EMPTY -----
+  listContent: {
+    padding: SCREEN_WIDTH * 0.04,
+    paddingBottom: SCREEN_HEIGHT * 0.18,
+  },
+
+  // EMPTY
   emptyWrap: {
     flex: 1,
     alignItems: "center",
@@ -305,7 +511,7 @@ const styles = StyleSheet.create({
     paddingBottom: SCREEN_HEIGHT * 0.025,
     gap: SCREEN_HEIGHT * 0.02,
   },
-  mascote: { 
+  mascote: {
     alignSelf: "center",
   },
   acoesTitulo: {
@@ -315,11 +521,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: "auto",
   },
-  cardImage: { 
-    width: SCREEN_WIDTH * 0.065, 
-    height: SCREEN_WIDTH * 0.065, 
-    alignItems: "center",
-    justifyContent: "center",
+  cardImage: {
+    width: SCREEN_WIDTH * 0.065,
+    height: SCREEN_WIDTH * 0.065,
   },
   cardsLinha: {
     flexDirection: "row",
@@ -341,20 +545,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  cardText: { 
-    fontSize: SCREEN_WIDTH * 0.035, 
-    fontWeight: "600", 
-    color: "#2E2E2E" 
+  cardText: {
+    fontSize: SCREEN_WIDTH * 0.035,
+    fontWeight: "600",
+    color: "#2E2E2E",
   },
 
-  // ----- INPUT -----
+  // INPUT / DOCUMENTO
   inputContainer: {
+    left: 0,
+    right: 0,
+    height: 40,
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: SCREEN_WIDTH * 0.05,
-    paddingVertical: SCREEN_HEIGHT * 0.012,
+    paddingTop: SCREEN_HEIGHT * 0.015,
+    paddingBottom: SCREEN_HEIGHT * 0.02,
     gap: 8,
     backgroundColor: "#FFFEF6",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    elevation: 10,
+    minHeight: SCREEN_HEIGHT * 0.095,
   },
   input: {
     flex: 1,
@@ -371,6 +583,7 @@ const styles = StyleSheet.create({
   inputDisabled: {
     backgroundColor: "#E5E7EB",
     color: "#9CA3AF",
+    opacity: 0.9,
   },
   sendButton: {
     width: SCREEN_WIDTH * 0.11,
@@ -381,9 +594,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sendButtonDisabled: { backgroundColor: "#D1D5DB" },
-  sendButtonText: { 
-    color: "#fff", 
-    fontSize: SCREEN_WIDTH * 0.05, 
-    fontWeight: "bold" 
+  sendButtonText: {
+    color: "#fff",
+    fontSize: SCREEN_WIDTH * 0.05,
+    fontWeight: "bold",
   },
 });

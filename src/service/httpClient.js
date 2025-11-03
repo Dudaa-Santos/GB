@@ -1,8 +1,65 @@
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const httpClient = axios.create({
   baseURL: "https://senai-tcc-backend-gb.onrender.com", 
   timeout: 30000, 
 });
+
+// Interceptor para adicionar token automaticamente em TODAS as requisições
+httpClient.interceptors.request.use(
+  async (config) => {
+    console.log("=== INTERCEPTOR REQUEST ===");
+    console.log("URL:", config.url);
+    console.log("Method:", config.method);
+    console.log("Headers antes:", JSON.stringify(config.headers, null, 2));
+
+    // Tenta pegar o token do AsyncStorage
+    const token = await AsyncStorage.getItem("token");
+
+    console.log("Token do AsyncStorage:", token ? `${token.substring(0, 20)}...` : "null");
+
+    // Se tem token e não tem Authorization no header, adiciona
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log("Token adicionado automaticamente");
+    }
+
+    console.log("Headers depois:", JSON.stringify(config.headers, null, 2));
+    console.log("=== FIM INTERCEPTOR REQUEST ===");
+
+    return config;
+  },
+  (error) => {
+    console.error("Erro no interceptor request:", error);
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para tratar erros de resposta
+httpClient.interceptors.response.use(
+  (response) => {
+    console.log("=== INTERCEPTOR RESPONSE (SUCESSO) ===");
+    console.log("Status:", response.status);
+    console.log("URL:", response.config.url);
+    return response;
+  },
+  async (error) => {
+    console.error("=== INTERCEPTOR RESPONSE (ERRO) ===");
+    console.error("URL:", error.config?.url);
+    console.error("Status:", error.response?.status);
+    console.error("Data:", JSON.stringify(error.response?.data, null, 2));
+
+    // Se retornar 401 (não autorizado), pode fazer logout automático
+    if (error.response?.status === 401) {
+      console.error("Token inválido ou expirado - considerando logout");
+      // await AsyncStorage.removeItem('token');
+      // await AsyncStorage.removeItem('id');
+      // navigation.replace('Login'); // você precisa implementar isso
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default httpClient;
