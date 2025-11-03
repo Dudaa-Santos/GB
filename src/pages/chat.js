@@ -11,12 +11,16 @@ import {
   Platform,
   FlatList,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MessageBubble from "../components/MessageBubble";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { chatBotMessage } from "../service/authService";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function Chat() {
   const navigation = useNavigation();
@@ -25,40 +29,24 @@ export default function Chat() {
   const [mensagem, setMensagem] = useState("");
   const [kbHeight, setKbHeight] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-
-  // histórico da conversa
-  const [conversa, setConversa] = useState([
-    {
-      id: "1",
-      text: "Olá, eu sou a Oirem! Como posso te ajudar hoje?",
-      fromUser: false,
-      time: "07:32",
-    },
-  ]);
-
-  // id de sessão (pra manter o contexto da IA)
+  const [conversa, setConversa] = useState([]);
   const [conversationId, setConversationId] = useState(null);
-
-  // FlatList ref pra autoscroll
+  const [primeiroUso, setPrimeiroUso] = useState(true);
   const listRef = useRef(null);
 
-  // monitorar teclado pra subir o input
   useEffect(() => {
     const show = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hide = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
     const showSub = Keyboard.addListener(show, (e) => {
       setKbHeight(e.endCoordinates?.height ?? 0);
     });
     const hideSub = Keyboard.addListener(hide, () => setKbHeight(0));
-
     return () => {
       showSub.remove();
       hideSub.remove();
     };
   }, []);
 
-  // hora bonitinha tipo 07:41
   function getHoraAgora() {
     const d = new Date();
     const h = d.getHours().toString().padStart(2, "0");
@@ -66,62 +54,37 @@ export default function Chat() {
     return `${h}:${m}`;
   }
 
-  // enviar mensagem
-  const handleEnviar = async () => {
-    if (!mensagem.trim()) return;
+  const handleEnviar = async (textOverride) => {
+    const textoUsuario = (textOverride ?? mensagem).trim();
+    if (!textoUsuario) return;
 
-    const textoUsuario = mensagem.trim();
-
-    // adiciona mensagem do usuário
     const novaMensagem = {
       id: Date.now().toString(),
       text: textoUsuario,
       fromUser: true,
       time: getHoraAgora(),
     };
-
     setConversa((prev) => [...prev, novaMensagem]);
-
-    // limpa input
     setMensagem("");
-
-    // loading ligado
     setIsLoading(true);
 
-    // adiciona a mensagem "digitando..." do bot (bolinhas)
     const typingId = `typing-${Date.now()}`;
     setConversa((prev) => [
       ...prev,
-      {
-        id: typingId,
-        typing: true, // <- isso aciona as bolinhas no MessageBubble
-        fromUser: false,
-        time: "",
-      },
+      { id: typingId, typing: true, fromUser: false, time: "" },
     ]);
 
     try {
       const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        throw new Error("Token não encontrado. Faça login novamente.");
-      }
+      if (!token) throw new Error("Token não encontrado. Faça login novamente.");
 
-      // chama o backend
-      const resposta = await chatBotMessage(
-        textoUsuario,
-        token,
-        conversationId
-      );
-
-      // atualiza conversationId se o back devolver outro
-      const novoConversationId =
-        resposta?.data?.conversationId || conversationId;
+      const resposta = await chatBotMessage(textoUsuario, token, conversationId);
+      const novoConversationId = resposta?.data?.conversationId || conversationId;
       setConversationId(novoConversationId);
 
-      // pega o texto do bot
       const textoRespostaDoBot =
-        resposta?.data?.resposta ||
-        resposta?.data.resposta ||
+        resposta?.data?.resposta ??
+        resposta?.data?.message ??
         JSON.stringify(resposta);
 
       const respostaBot = {
@@ -129,25 +92,20 @@ export default function Chat() {
         text: textoRespostaDoBot,
         fromUser: false,
         time: getHoraAgora(),
-        raw: resposta,
       };
 
-      // remove o typing e coloca a resposta final da IA
       setConversa((prev) => {
         const semTyping = prev.filter((m) => !m.typing);
         return [...semTyping, respostaBot];
       });
     } catch (error) {
       console.error("Erro ao chamar chatbot:", error);
-
       const respostaErro = {
         id: (Date.now() + 1).toString(),
         text: "Desculpe, tive um problema ao processar sua mensagem. Tente novamente.",
         fromUser: false,
         time: getHoraAgora(),
       };
-
-      // remove o typing e coloca mensagem de erro
       setConversa((prev) => {
         const semTyping = prev.filter((m) => !m.typing);
         return [...semTyping, respostaErro];
@@ -155,6 +113,61 @@ export default function Chat() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const sendQuick = (text) => {
+    if (isLoading) return;
+    setPrimeiroUso(false);
+    handleEnviar(text);
+  };
+
+  const EmptyState = () => {
+    // Ajusta tamanho da mascote baseado na altura da tela
+    const mascoteSize = Math.min(SCREEN_HEIGHT * 0.35, 300);
+    
+    return (
+      <View style={styles.emptyWrap}>
+        <Image
+          source={require("../images/Oirem/OiremCorpoInteiro.png")}
+          style={[styles.mascote, { width: mascoteSize, height: mascoteSize }]}
+          resizeMode="contain"
+        />
+
+        <Text style={styles.acoesTitulo}>AÇÕES RÁPIDAS</Text>
+
+        <View style={styles.cardsLinha}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.cardQuick,
+              pressed && { opacity: 0.7, backgroundColor: "#E6F2EE" },
+            ]}
+            onPress={() => sendQuick("quero agendar consulta")}
+          >
+            <Image
+              source={require("../images/icones/Calendar_add_g.png")}
+              style={styles.cardImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.cardText}>Agendar Consultas</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.cardQuick,
+              pressed && { opacity: 0.7, backgroundColor: "#E6F2EE" },
+            ]}
+            onPress={() => sendQuick("quero solicitar beneficio")}
+          >
+            <Image
+              source={require("../images/icones/Money_g.png")}
+              style={styles.cardImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.cardText}>Solicitar Benefício</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -176,18 +189,10 @@ export default function Chat() {
           <Text style={styles.backButtonText}>←</Text>
         </Pressable>
 
-        <Image
-          source={require("../images/oirem.jpg")}
-          style={styles.avatar}
-        />
-
+        <Image source={require("../images/oirem.jpg")} style={styles.avatar} />
         <View style={{ flex: 1 }}>
           <Text style={styles.nome}>Oirem Ture A Mai</Text>
-
-          {/* agora sempre fixo, sem "Digitando..." */}
-          <Text style={styles.status}>
-            Online - Sempre disponível
-          </Text>
+          <Text style={styles.status}>Sempre disponível</Text>
         </View>
       </View>
 
@@ -204,14 +209,12 @@ export default function Chat() {
             typing={item.typing}
           />
         )}
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          padding: 16,
-          paddingBottom: 90 + insets.bottom,
-        }}
-        onContentSizeChange={() => {
-          listRef.current?.scrollToEnd({ animated: true });
-        }}
+        ListEmptyComponent={<EmptyState />}
+        contentContainerStyle={[
+          styles.listContent,
+          conversa.length === 0 && { flex: 1, justifyContent: "space-between" },
+        ]}
+        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
       />
 
       {/* INPUT */}
@@ -227,23 +230,26 @@ export default function Chat() {
         ]}
       >
         <TextInput
-          style={styles.input}
-          placeholder="Digite sua mensagem..."
+          style={[
+            styles.input,
+            primeiroUso && styles.inputDisabled,
+          ]}
+          placeholder={primeiroUso ? "Selecione uma ação rápida acima..." : "Digite sua mensagem..."}
           placeholderTextColor="#9CA3AF"
           value={mensagem}
           onChangeText={setMensagem}
           multiline
           maxLength={1000}
-          editable={!isLoading}
+          editable={!isLoading && !primeiroUso}
         />
 
         <Pressable
           style={[
             styles.sendButton,
-            (!mensagem.trim() || isLoading) && styles.sendButtonDisabled,
+            (!mensagem.trim() || isLoading || primeiroUso) && styles.sendButtonDisabled,
           ]}
-          onPress={handleEnviar}
-          disabled={!mensagem.trim() || isLoading}
+          onPress={() => handleEnviar()}
+          disabled={!mensagem.trim() || isLoading || primeiroUso}
           hitSlop={10}
         >
           {isLoading ? (
@@ -258,46 +264,95 @@ export default function Chat() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFEF6",
-  },
+  container: { flex: 1, backgroundColor: "#FFFEF6" },
   headerChat: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: SCREEN_WIDTH * 0.04,
     paddingVertical: 14,
     backgroundColor: "#065F46",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.1)",
   },
-  backButtonText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
+  backButtonText: { color: "#fff", fontSize: 24, fontWeight: "bold" },
+  avatar: { 
+    width: SCREEN_WIDTH * 0.11, 
+    height: SCREEN_WIDTH * 0.11, 
+    borderRadius: 100, 
+    backgroundColor: "#fff" 
   },
-  avatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 100,
-    resizeMode: "cover",
+  nome: { 
+    color: "#fff", 
+    fontSize: SCREEN_WIDTH * 0.04, 
+    fontWeight: "bold" 
+  },
+  status: { 
+    color: "#d1fae5", 
+    fontSize: SCREEN_WIDTH * 0.035 
+  },
+  listContent: { 
+    padding: SCREEN_WIDTH * 0.04, 
+    paddingBottom: SCREEN_HEIGHT * 0.12 
+  },
+
+  // ----- EMPTY -----
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: SCREEN_HEIGHT * 0.03,
+    paddingBottom: SCREEN_HEIGHT * 0.025,
+    gap: SCREEN_HEIGHT * 0.02,
+  },
+  mascote: { 
+    alignSelf: "center",
+  },
+  acoesTitulo: {
+    fontSize: SCREEN_WIDTH * 0.033,
+    fontWeight: "700",
+    color: "#065F46",
+    letterSpacing: 0.5,
+    marginTop: "auto",
+  },
+  cardImage: { 
+    width: SCREEN_WIDTH * 0.065, 
+    height: SCREEN_WIDTH * 0.065, 
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardsLinha: {
+    flexDirection: "row",
+    gap: SCREEN_WIDTH * 0.035,
+    paddingHorizontal: SCREEN_WIDTH * 0.025,
+    width: "100%",
+  },
+  cardQuick: {
+    flex: 1,
     backgroundColor: "#fff",
+    borderWidth: 1.5,
+    borderColor: "#065F46",
+    borderRadius: 12,
+    paddingVertical: SCREEN_HEIGHT * 0.022,
+    paddingHorizontal: SCREEN_WIDTH * 0.03,
+    gap: 6,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
-  nome: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  cardText: { 
+    fontSize: SCREEN_WIDTH * 0.035, 
+    fontWeight: "600", 
+    color: "#2E2E2E" 
   },
-  status: {
-    color: "#d1fae5",
-    fontSize: 14,
-  },
+
+  // ----- INPUT -----
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: SCREEN_WIDTH * 0.05,
+    paddingVertical: SCREEN_HEIGHT * 0.012,
     gap: 8,
     backgroundColor: "#FFFEF6",
   },
@@ -307,26 +362,28 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    fontSize: 15,
+    fontSize: SCREEN_WIDTH * 0.038,
     color: "#1F2937",
-    maxHeight: 110,
+    maxHeight: SCREEN_HEIGHT * 0.13,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
+  inputDisabled: {
+    backgroundColor: "#E5E7EB",
+    color: "#9CA3AF",
+  },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: SCREEN_WIDTH * 0.11,
+    height: SCREEN_WIDTH * 0.11,
+    borderRadius: SCREEN_WIDTH * 0.055,
     backgroundColor: "#065F46",
     alignItems: "center",
     justifyContent: "center",
   },
-  sendButtonDisabled: {
-    backgroundColor: "#D1D5DB",
-  },
-  sendButtonText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
+  sendButtonDisabled: { backgroundColor: "#D1D5DB" },
+  sendButtonText: { 
+    color: "#fff", 
+    fontSize: SCREEN_WIDTH * 0.05, 
+    fontWeight: "bold" 
   },
 });

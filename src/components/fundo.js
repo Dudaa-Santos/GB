@@ -1,11 +1,11 @@
 import React from "react";
 import { View, Image, StyleSheet, ScrollView, Pressable, Text, StatusBar, Dimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-const { height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight, width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function Fundo({ children, isHome = false, showBackButton = true, scrollable = true }) {
+export default function Fundo({ children, isHome = false, showBackButton = true, scrollable = true, onLogout }) {
   const navigation = useNavigation();
 
   const handleBack = () => {
@@ -38,20 +38,31 @@ export default function Fundo({ children, isHome = false, showBackButton = true,
         <View style={styles.logoContainer}>
           <Image source={require("../images/logo_gb.png")} style={styles.logo} />
         </View>
+
+        {/* Botão de logout (apenas na home) */}
+        {isHome && onLogout && (
+          <Pressable 
+            style={styles.logoutButton} 
+            onPress={onLogout}
+            hitSlop={10}
+          >
+            <Icon name="logout" size={SCREEN_WIDTH * 0.065} color="#FFFFFF" />
+          </Pressable>
+        )}
       </View>
 
       <ContentWrapper
         style={[
           scrollable ? styles.scrollContent : styles.content,
-          scrollable && { height: availableHeight }  // Força altura específica para ScrollView na web
+          scrollable && { height: availableHeight }
         ]}
         showsVerticalScrollIndicator={scrollable}
         keyboardShouldPersistTaps={scrollable ? "handled" : undefined}
         contentContainerStyle={scrollable ? { 
           flexGrow: 1,
-          minHeight: availableHeight  // Garante que o conteúdo ocupe pelo menos a altura disponível
+          minHeight: availableHeight
         } : undefined}
-        nestedScrollEnabled={true}  // Permite scroll aninhado
+        nestedScrollEnabled={true}
       >
         <View style={styles.contentInner}>
           {children}
@@ -103,6 +114,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
+  logoutButton: {
+    position: "absolute",
+    right: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    zIndex: 1,
+  },
   scrollContent: {
     backgroundColor: "#FFFEF6",
     paddingHorizontal: 20,
@@ -114,6 +135,6 @@ const styles = StyleSheet.create({
   },
   contentInner: {
     flex: 1,
-    minHeight: '100%',  // Garante altura mínima
+    minHeight: '100%',
   },
 });
