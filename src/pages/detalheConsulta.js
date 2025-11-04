@@ -4,6 +4,8 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Alert,
+  TouchableOpacity,
 } from "react-native";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
@@ -17,13 +19,13 @@ export default function DetalheConsulta({ route }) {
   // Função para normalizar o status
   const normalizeStatus = (status) => {
     if (!status) return "PENDENTE";
-    
+
     const statusUpper = status.toUpperCase();
-    
+
     if (statusUpper === "PENDENTE_ASSINATURA") {
       return "Pend. Assinar";
     }
-    
+
     return status;
   };
 
@@ -41,14 +43,18 @@ export default function DetalheConsulta({ route }) {
     if (!dateString) return "Data não informada";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }) + " às " + date.toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return (
+        date.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        }) +
+        " às " +
+        date.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
     } catch {
       return dateString;
     }
@@ -87,18 +93,54 @@ export default function DetalheConsulta({ route }) {
     }
 
     const esp = consulta.medico.especialidade;
-    
+
     // Se for objeto, pega o nome
-    if (typeof esp === 'object' && esp.nome) {
+    if (typeof esp === "object" && esp.nome) {
       return esp.nome;
     }
-    
+
     // Se for string, retorna direto
-    if (typeof esp === 'string') {
+    if (typeof esp === "string") {
       return esp;
     }
-    
+
     return "Não informada";
+  };
+
+  // Só mostra os botões quando status contém "agend"
+  const isAgendado = () => {
+    if (!consulta?.status) return false;
+    const s = consulta.status.toLowerCase();
+    return s.includes("agend");
+  };
+
+  const handleReagendar = () => {
+    // Aqui você pode navegar para uma tela de reagendamento
+    // ou abrir um modal de seleção de novo horário
+    // Exemplo:
+    // navigation.navigate("ReagendarConsulta", { consultaId: consulta.idAgendamento });
+    Alert.alert(
+      "Reagendar consulta",
+      "Aqui você pode implementar a lógica para reagendar a consulta (ex.: abrir tela de agenda)."
+    );
+  };
+
+  const handleCancelar = () => {
+    Alert.alert(
+      "Cancelar consulta",
+      "Tem certeza que deseja cancelar esta consulta?",
+      [
+        { text: "Não", style: "cancel" },
+        {
+          text: "Sim",
+          onPress: () => {
+            // TODO: chamar API de cancelamento aqui
+            // ex.: cancelarConsulta(consulta.idAgendamento)
+            console.log("Cancelar consulta:", consulta.idAgendamento);
+          },
+        },
+      ]
+    );
   };
 
   if (!consulta) {
@@ -150,13 +192,6 @@ export default function DetalheConsulta({ route }) {
                 {formatDateTime(consulta.horario)}
               </Text>
             </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>ID do Agendamento:</Text>
-              <Text style={styles.infoValue}>
-                #{consulta.idAgendamento || "Não informado"}
-              </Text>
-            </View>
           </View>
 
           {/* Paciente */}
@@ -164,9 +199,7 @@ export default function DetalheConsulta({ route }) {
             <Text style={styles.sectionTitle}>Paciente</Text>
             <View style={styles.sectionCard}>
               <Text style={styles.sectionNome}>{getPacienteNome()}</Text>
-              <Text style={styles.sectionInfo}>
-                Tipo: {getTipoPaciente()}
-              </Text>
+              <Text style={styles.sectionInfo}>Tipo: {getTipoPaciente()}</Text>
               {consulta.dependente?.grauParentesco && (
                 <Text style={styles.sectionInfo}>
                   Grau de Parentesco: {consulta.dependente.grauParentesco}
@@ -222,6 +255,25 @@ export default function DetalheConsulta({ route }) {
                   {consulta.observacoes}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {/* Ações: Reagendar / Cancelar (somente se agendado) */}
+          {isAgendado() && (
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity
+                style={styles.reagendarButton}
+                onPress={handleReagendar}
+              >
+                <Text style={styles.reagendarButtonText}>Reagendar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelarButton}
+                onPress={handleCancelar}
+              >
+                <Text style={styles.cancelarButtonText}>Cancelar consulta</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -368,5 +420,41 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#1F2937",
     lineHeight: 22,
+  },
+
+  // Ações
+  actionsContainer: {
+    marginTop: 8,
+    marginBottom: 24,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  reagendarButton: {
+    flex: 1,
+    backgroundColor: "#065F46",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reagendarButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  cancelarButton: {
+    flex: 1,
+    backgroundColor: "#DC2626",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelarButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

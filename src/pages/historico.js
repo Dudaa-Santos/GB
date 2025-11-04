@@ -24,7 +24,7 @@ export default function Historico() {
         
         const statusUpper = status.toUpperCase();
         
-        // Transforma PENDENTE_ASSINATURA em AG. ASSINATURA
+        // Transforma PENDENTE_ASSINATURA em PEND. Assinar
         if (statusUpper === "PENDENTE_ASSINATURA") {
             return "PEND. Assinar";
         }
@@ -32,7 +32,7 @@ export default function Historico() {
         return status;
     };
 
-    // Função para buscar solicitações (benefícios)
+    // Função para buscar solicitações
     const fetchSolicitacoes = async () => {
         try {
             setLoading(true);
@@ -78,16 +78,12 @@ export default function Historico() {
 
     // Função para obter nome do paciente da consulta
     const getPacienteNome = (consulta) => {
-        // Verifica se é dependente
         if (consulta.dependente && consulta.dependente.nome) {
             return consulta.dependente.nome;
         }
-        
-        // Se não tem dependente, é o colaborador
         if (consulta.colaborador && consulta.colaborador.nome) {
             return consulta.colaborador.nome;
         }
-        
         return "Paciente não informado";
     };
 
@@ -96,19 +92,16 @@ export default function Historico() {
         if (consulta.medico && consulta.medico.nome) {
             return consulta.medico.nome;
         }
-        
         return "Médico não informado";
     };
 
     // Função para obter especialidade (extrai o nome do objeto)
     const getEspecialidadeNome = (consulta) => {
         if (consulta.medico && consulta.medico.especialidade) {
-            // Se for objeto, pega o nome
-            if (typeof consulta.medico.especialidade === 'object' && consulta.medico.especialidade.nome) {
+            if (typeof consulta.medico.especialidade === "object" && consulta.medico.especialidade.nome) {
                 return consulta.medico.especialidade.nome;
             }
-            // Se for string, retorna direto
-            if (typeof consulta.medico.especialidade === 'string') {
+            if (typeof consulta.medico.especialidade === "string") {
                 return consulta.medico.especialidade;
             }
         }
@@ -147,7 +140,6 @@ export default function Historico() {
             
             const response = await buscarAgendamentoPorId(id, token);
             
-            // A resposta deve ser um array direto baseado na estrutura fornecida
             let consultasArray = [];
             if (Array.isArray(response)) {
                 consultasArray = response;
@@ -176,7 +168,7 @@ export default function Historico() {
 
     // Recarregar quando trocar de aba
     useEffect(() => {
-        if (selectedTab === "historicoBeneficios") {
+        if (selectedTab === "historicoSolicitacoes") {
             fetchSolicitacoes();
         } else if (selectedTab === "historicoConsulta") {
             fetchConsultas();
@@ -188,7 +180,7 @@ export default function Historico() {
         if (!dateString) return "Data não informada";
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString('pt-BR');
+            return date.toLocaleDateString("pt-BR");
         } catch (error) {
             return dateString;
         }
@@ -199,28 +191,33 @@ export default function Historico() {
         if (!dateString) return "Data não informada";
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString('pt-BR') + ' • ' + date.toLocaleTimeString('pt-BR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
+            return (
+                date.toLocaleDateString("pt-BR") +
+                " • " +
+                date.toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })
+            );
         } catch (error) {
             return dateString;
         }
     };
 
-    // Função para obter o nome do benefício
-    const getBeneficioNome = (solicitacao) => {
+    // Função para obter o "nome" da solicitação (ex: nome do benefício ou descrição)
+    const getSolicitacaoNome = (solicitacao) => {
+        // A API ainda usa o campo beneficio, então mantemos essa leitura
         if (solicitacao.beneficio && solicitacao.beneficio.nome) {
             return solicitacao.beneficio.nome;
         }
         if (solicitacao.descricao) {
             return solicitacao.descricao;
         }
-        return "Benefício";
+        return "Solicitação";
     };
 
-    // Função para navegar para detalhes do benefício
-    const handleBeneficioPress = (solicitacao) => {
+    // Função para navegar para detalhes da solicitação
+    const handleSolicitacaoPress = (solicitacao) => {
         try {
             const solicitacaoSerializavel = {
                 id: solicitacao.id,
@@ -231,30 +228,36 @@ export default function Historico() {
                 tipoPagamento: solicitacao.tipoPagamento,
                 desconto: solicitacao.desconto,
                 descricao: solicitacao.descricao,
-                beneficio: solicitacao.beneficio ? {
-                    nome: solicitacao.beneficio.nome
-                } : null,
-                colaborador: solicitacao.colaborador ? {
-                    nome: solicitacao.colaborador.nome,
-                    matricula: solicitacao.colaborador.matricula,
-                    email: solicitacao.colaborador.email
-                } : null,
-                dependente: solicitacao.dependente ? {
-                    nome: solicitacao.dependente.nome,
-                    grauParentesco: solicitacao.dependente.grauParentesco
-                } : null
+                beneficio: solicitacao.beneficio
+                    ? {
+                          nome: solicitacao.beneficio.nome,
+                      }
+                    : null,
+                colaborador: solicitacao.colaborador
+                    ? {
+                          nome: solicitacao.colaborador.nome,
+                          matricula: solicitacao.colaborador.matricula,
+                          email: solicitacao.colaborador.email,
+                      }
+                    : null,
+                dependente: solicitacao.dependente
+                    ? {
+                          nome: solicitacao.dependente.nome,
+                          grauParentesco: solicitacao.dependente.grauParentesco,
+                      }
+                    : null,
             };
-            
-            navigation.navigate("DetalheBeneficio", { 
-                solicitacao: solicitacaoSerializavel
+
+            navigation.navigate("DetalheBeneficio", {
+                solicitacao: solicitacaoSerializavel,
             });
         } catch (error) {
-            navigation.navigate("DetalheBeneficio", { 
+            navigation.navigate("DetalheBeneficio", {
                 solicitacao: {
                     id: solicitacao.id,
                     status: solicitacao.status || "PENDENTE",
-                    descricao: solicitacao.descricao || "Benefício"
-                }
+                    descricao: solicitacao.descricao || "Solicitação",
+                },
             });
         }
     };
@@ -263,37 +266,45 @@ export default function Historico() {
     const handleConsultaPress = (consulta) => {
         console.log("=== handleConsultaPress ===");
         console.log("Consulta original:", JSON.stringify(consulta, null, 2));
-        
+
         try {
             const consultaSerializavel = {
                 idAgendamento: consulta.idAgendamento,
                 status: consulta.status,
                 horario: consulta.horario,
                 observacoes: consulta.observacoes,
-                medico: consulta.medico ? {
-                    id: consulta.medico.id,
-                    nome: consulta.medico.nome,
-                    // Extrai apenas o NOME da especialidade
-                    especialidade: getEspecialidadeNome(consulta),
-                    crm: consulta.medico.crm,
-                } : null,
-                colaborador: consulta.colaborador ? {
-                    id: consulta.colaborador.id,
-                    nome: consulta.colaborador.nome,
-                    matricula: consulta.colaborador.matricula,
-                    email: consulta.colaborador.email,
-                } : null,
-                dependente: consulta.dependente ? {
-                    id: consulta.dependente.id,
-                    nome: consulta.dependente.nome,
-                    grauParentesco: consulta.dependente.grauParentesco,
-                } : null,
+                medico: consulta.medico
+                    ? {
+                          id: consulta.medico.id,
+                          nome: consulta.medico.nome,
+                          especialidade: getEspecialidadeNome(consulta),
+                          crm: consulta.medico.crm,
+                      }
+                    : null,
+                colaborador: consulta.colaborador
+                    ? {
+                          id: consulta.colaborador.id,
+                          nome: consulta.colaborador.nome,
+                          matricula: consulta.colaborador.matricula,
+                          email: consulta.colaborador.email,
+                      }
+                    : null,
+                dependente: consulta.dependente
+                    ? {
+                          id: consulta.dependente.id,
+                          nome: consulta.dependente.nome,
+                          grauParentesco: consulta.dependente.grauParentesco,
+                      }
+                    : null,
             };
-            
-            console.log("Consulta serializada:", JSON.stringify(consultaSerializavel, null, 2));
-            
-            navigation.navigate("DetalheConsulta", { 
-                consulta: consultaSerializavel
+
+            console.log(
+                "Consulta serializada:",
+                JSON.stringify(consultaSerializavel, null, 2)
+            );
+
+            navigation.navigate("DetalheConsulta", {
+                consulta: consultaSerializavel,
             });
         } catch (error) {
             console.error("=== ERRO ao navegar ===");
@@ -302,13 +313,13 @@ export default function Historico() {
         }
     };
 
-    // Renderizar seção de benefícios
-    const renderBeneficios = () => {
+    // Renderizar seção de solicitações
+    const renderSolicitacoes = () => {
         if (loading) {
             return (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#065F46" />
-                    <Text style={styles.loadingText}>Carregando benefícios...</Text>
+                    <Text style={styles.loadingText}>Carregando solicitações...</Text>
                 </View>
             );
         }
@@ -317,10 +328,7 @@ export default function Historico() {
             return (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
-                    <Text 
-                        style={styles.retryText} 
-                        onPress={fetchSolicitacoes}
-                    >
+                    <Text style={styles.retryText} onPress={fetchSolicitacoes}>
                         Tentar novamente
                     </Text>
                 </View>
@@ -330,7 +338,9 @@ export default function Historico() {
         if (!solicitacoes || solicitacoes.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Nenhuma solicitação de benefício encontrada.</Text>
+                    <Text style={styles.emptyText}>
+                        Nenhuma solicitação encontrada.
+                    </Text>
                 </View>
             );
         }
@@ -340,11 +350,11 @@ export default function Historico() {
                 {solicitacoes.map((solicitacao, index) => (
                     <CardStatus
                         key={solicitacao.id || index}
-                        tipo="beneficio"
-                        titulo={getBeneficioNome(solicitacao)}
+                        tipo="solicitacao"
+                        titulo={getSolicitacaoNome(solicitacao)}
                         status={normalizeStatus(solicitacao.status || "PENDENTE")}
                         dataEnvio={formatDate(solicitacao.dataSolicitacao)}
-                        onPress={() => handleBeneficioPress(solicitacao)}
+                        onPress={() => handleSolicitacaoPress(solicitacao)}
                     />
                 ))}
             </View>
@@ -366,10 +376,7 @@ export default function Historico() {
             return (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{errorConsultas}</Text>
-                    <Text 
-                        style={styles.retryText} 
-                        onPress={fetchConsultas}
-                    >
+                    <Text style={styles.retryText} onPress={fetchConsultas}>
                         Tentar novamente
                     </Text>
                 </View>
@@ -379,7 +386,7 @@ export default function Historico() {
         if (!consultas || consultas.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
+                    <Text style={styles.emptyText}>Nenhuma consulta encontrado.</Text>
                 </View>
             );
         }
@@ -390,7 +397,7 @@ export default function Historico() {
                     const paciente = getPacienteNome(consulta);
                     const medico = getMedicoNome(consulta);
                     const tipoPaciente = getTipoPaciente(consulta);
-                    
+
                     return (
                         <CardStatus
                             key={consulta.idAgendamento || index}
@@ -417,19 +424,17 @@ export default function Historico() {
                 />
                 <TabSwitch
                     options={[
-                        { label: "Consulta", value: "historicoConsulta" },
-                        { label: "Benefícios", value: "historicoBeneficios" },
+                        { label: "Consultas", value: "historicoConsulta" },
+                        { label: "Solicitações", value: "historicoSolicitacoes" },
                     ]}
                     selected={selectedTab}
                     onSelect={setSelectedTab}
                 />
 
                 <View style={styles.contentArea}>
-                    {selectedTab === "historicoConsulta" ? (
-                        renderConsultas()
-                    ) : (
-                        renderBeneficios()
-                    )}
+                    {selectedTab === "historicoConsulta"
+                        ? renderConsultas()
+                        : renderSolicitacoes()}
                 </View>
             </View>
         </Fundo>

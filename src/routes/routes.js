@@ -11,7 +11,6 @@ import SolicitarBeneficio from "../pages/solicitarBeneficio.js";
 import ParcelamentoAberto from "../pages/parcelamentoAberto.js";
 import DocumentosEnviados from "../pages/documentosEnviados.js";
 import Historico from "../pages/historico.js";
-import ConsultasAgendadas from "../pages/consultasAgendadas.js";
 import DetalheBeneficio from "../pages/detalheBeneficio.js";
 import DetalheConsulta from "../pages/detalheConsulta.js";
 import AssinaturasPendentes from "../pages/assinaturasPendentes.js";
@@ -59,7 +58,6 @@ export default function Routes() {
         <Stack.Screen name="ParcelamentoAberto" component={ParcelamentoAberto} />
         <Stack.Screen name="DocumentosEnviados" component={DocumentosEnviados} />
         <Stack.Screen name="Historico" component={Historico} />
-        <Stack.Screen name="ConsultasAgendadas" component={ConsultasAgendadas} />
         <Stack.Screen name="DetalheBeneficio" component={DetalheBeneficio} />
         <Stack.Screen name="DetalheConsulta" component={DetalheConsulta} />
         <Stack.Screen name="AssinaturasPendentes" component={AssinaturasPendentes} />

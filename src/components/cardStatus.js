@@ -7,15 +7,15 @@ function getStatusColor(status) {
 
     const statusLower = status.toLowerCase();
 
-    if (statusLower.includes("pendente")) return "#E5C233";
-    if (statusLower.includes("pend. assinar")) return "#E5C233";
-    if (statusLower.includes("aprovado") || statusLower.includes("APROVADO")) return "#5C8F0E";
+    if (statusLower.includes("pendente")) return "#F59E0B";
+    if (statusLower.includes("pend. assinar")) return "#315fd3ff";
+    if (statusLower.includes("aprovado") || statusLower.includes("APROVADO")) return "#065F46";
     if (statusLower.includes("negado")) return "#DC2626";
-    if (statusLower.includes("realizada")) return "#5C8F0E";
-    if (statusLower.includes("agendado")) return "#065F46";
+    if (statusLower.includes("agendado")) return "#315fd3ff";
     
     if (statusLower.includes("cancelado")) return "#DC2626";
-
+    if (statusLower.includes("recusada")) return "#DC2626";
+    if (statusLower.includes("faltou")) return "#F59E0B";
     return "#065F46";
 }
 
