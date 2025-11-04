@@ -25,6 +25,20 @@ export default function DetalheBeneficio({ route }) {
   const [loadingDocumentos, setLoadingDocumentos] = useState(true);
   const [loadingUrlMap, setLoadingUrlMap] = useState({}); // loading por documento (ícones)
 
+  // Função para normalizar o status
+  const normalizeStatus = (status) => {
+    if (!status) return "PENDENTE";
+    
+    const statusUpper = status.toUpperCase();
+    
+    // Transforma PENDENTE_ASSINATURA em Pend. Assinar
+    if (statusUpper === "PENDENTE_ASSINATURA") {
+      return "Pend. Assinar";
+    }
+    
+    return status;
+  };
+
   useEffect(() => {
     const fetchDocumentos = async () => {
       setLoadingDocumentos(true);
@@ -303,7 +317,9 @@ export default function DetalheBeneficio({ route }) {
             <View style={styles.headerCard}>
               <Text style={styles.beneficioTitulo}>{getBeneficioNome()}</Text>
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(solicitacao.status) }]}>
-                <Text style={styles.statusText}>{solicitacao.status || "PENDENTE"}</Text>
+                <Text style={styles.statusText}>
+                  {normalizeStatus(solicitacao.status) || "PENDENTE"}
+                </Text>
               </View>
             </View>
 
@@ -335,6 +351,16 @@ export default function DetalheBeneficio({ route }) {
               </View>
             )}
           </View>
+
+          {/* Descrição */}
+          {solicitacao.descricao && (
+            <View style={styles.descricaoSection}>
+              <Text style={styles.sectionTitle}>Descrição</Text>
+              <View style={styles.descricaoCard}>
+                <Text style={styles.descricaoText}>{solicitacao.descricao}</Text>
+              </View>
+            </View>
+          )}
 
           {/* Documentos */}
           <View style={styles.documentosSection}>

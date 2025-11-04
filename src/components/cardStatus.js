@@ -8,6 +8,7 @@ function getStatusColor(status) {
     const statusLower = status.toLowerCase();
 
     if (statusLower.includes("pendente")) return "#E5C233";
+    if (statusLower.includes("pend. assinar")) return "#E5C233";
     if (statusLower.includes("aprovado") || statusLower.includes("APROVADO")) return "#5C8F0E";
     if (statusLower.includes("negado")) return "#DC2626";
     if (statusLower.includes("realizada")) return "#5C8F0E";

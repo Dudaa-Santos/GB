@@ -18,6 +18,20 @@ export default function Historico() {
     const [loadingConsultas, setLoadingConsultas] = useState(false);
     const [errorConsultas, setErrorConsultas] = useState(null);
 
+    // Função para normalizar o status e deixá-lo mais curto
+    const normalizeStatus = (status) => {
+        if (!status) return "PENDENTE";
+        
+        const statusUpper = status.toUpperCase();
+        
+        // Transforma PENDENTE_ASSINATURA em AG. ASSINATURA
+        if (statusUpper === "PENDENTE_ASSINATURA") {
+            return "PEND. Assinar";
+        }
+        
+        return status;
+    };
+
     // Função para buscar solicitações (benefícios)
     const fetchSolicitacoes = async () => {
         try {
@@ -270,7 +284,7 @@ export default function Historico() {
                         key={solicitacao.id || index}
                         tipo="beneficio"
                         titulo={getBeneficioNome(solicitacao)}
-                        status={solicitacao.status || "PENDENTE"}
+                        status={normalizeStatus(solicitacao.status || "PENDENTE")}
                         dataEnvio={formatDate(solicitacao.dataSolicitacao)}
                         onPress={() => handleBeneficioPress(solicitacao)}
                     />
@@ -324,7 +338,7 @@ export default function Historico() {
                             key={consulta.idAgendamento || index}
                             tipo="consulta"
                             titulo={`${paciente}`}
-                            status={consulta.status}
+                            status={normalizeStatus(consulta.status)}
                             dataEnvio={formatDateTime(consulta.horario)}
                             medico={medico}
                             tipoPaciente={tipoPaciente}
