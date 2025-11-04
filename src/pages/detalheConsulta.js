@@ -10,33 +10,50 @@ import {
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
 
+// ✅ Função EXATAMENTE IGUAL ao cardStatus.js - ORDEM CORRETA
+function getStatusColor(status) {
+    if (!status) return "#6B7280";
+
+    const statusLower = status.toLowerCase();
+
+    // Benefícios
+    if (statusLower.includes("pend. assinar") || statusLower.includes("pendente_assinatura")) return "#315fd3ff"; // Azul
+    if (statusLower.includes("pendente")) return "#F59E0B"; // Laranja
+    if (statusLower.includes("aprovado") || statusLower.includes("aprovada")) return "#065F46"; // Verde escuro
+    if (statusLower.includes("recusada") || statusLower.includes("negado")) return "#DC2626"; // Vermelho
+
+    // Consultas
+    if (statusLower.includes("agendado") || statusLower.includes("agendada")) return "#315fd3ff"; // Azul
+    if (statusLower.includes("concluído") || statusLower.includes("concluida")) return "#065F46"; // Verde
+    if (statusLower.includes("cancelado") || statusLower.includes("cancelada")) return "#DC2626"; // Vermelho
+    if (statusLower.includes("faltou")) return "#F59E0B"; // Laranja
+
+    return "#065F46"; // Verde padrão
+}
+
 export default function DetalheConsulta({ route }) {
   const { consulta } = route?.params || {};
 
   console.log("=== DetalheConsulta ===");
   console.log("Consulta recebida:", JSON.stringify(consulta, null, 2));
 
+  // ✅ Calcula a cor do status
+  const statusColor = getStatusColor(consulta?.status);
+
   // Função para normalizar o status
-  const normalizeStatus = (status) => {
+  const normalizeStatusConsulta = (status) => {
     if (!status) return "PENDENTE";
-
+    
     const statusUpper = status.toUpperCase();
-
-    if (statusUpper === "PENDENTE_ASSINATURA") {
-      return "Pend. Assinar";
-    }
-
-    return status;
-  };
-
-  const getStatusColor = (status) => {
-    if (!status) return "#6B7280";
-    const s = status.toLowerCase();
-    if (s.includes("pendente")) return "#F59E0B";
-    if (s.includes("confirmado") || s.includes("agendado")) return "#065F46";
-    if (s.includes("cancelado")) return "#DC2626";
-    if (s.includes("realizado")) return "#3B82F6";
-    return "#6B7280";
+    
+    const statusMap = {
+        "AGENDADO": "AGENDADA",
+        "CANCELADO": "CANCELADA",
+        "CONCLUIDO": "CONCLUÍDA",
+        "FALTOU": "FALTOU"
+    };
+    
+    return statusMap[statusUpper] || status;
   };
 
   const formatDateTime = (dateString) => {
@@ -94,12 +111,10 @@ export default function DetalheConsulta({ route }) {
 
     const esp = consulta.medico.especialidade;
 
-    // Se for objeto, pega o nome
     if (typeof esp === "object" && esp.nome) {
       return esp.nome;
     }
 
-    // Se for string, retorna direto
     if (typeof esp === "string") {
       return esp;
     }
@@ -107,7 +122,6 @@ export default function DetalheConsulta({ route }) {
     return "Não informada";
   };
 
-  // Só mostra os botões quando status contém "agend"
   const isAgendado = () => {
     if (!consulta?.status) return false;
     const s = consulta.status.toLowerCase();
@@ -115,10 +129,6 @@ export default function DetalheConsulta({ route }) {
   };
 
   const handleReagendar = () => {
-    // Aqui você pode navegar para uma tela de reagendamento
-    // ou abrir um modal de seleção de novo horário
-    // Exemplo:
-    // navigation.navigate("ReagendarConsulta", { consultaId: consulta.idAgendamento });
     Alert.alert(
       "Reagendar consulta",
       "Aqui você pode implementar a lógica para reagendar a consulta (ex.: abrir tela de agenda)."
@@ -134,8 +144,6 @@ export default function DetalheConsulta({ route }) {
         {
           text: "Sim",
           onPress: () => {
-            // TODO: chamar API de cancelamento aqui
-            // ex.: cancelarConsulta(consulta.idAgendamento)
             console.log("Cancelar consulta:", consulta.idAgendamento);
           },
         },
@@ -170,18 +178,13 @@ export default function DetalheConsulta({ route }) {
             icone={require("../images/icones/Calendar_add_g.png")}
           />
 
-          {/* Card Principal */}
-          <View style={styles.mainCard}>
+          {/* Card Principal - ✅ com borderLeftColor dinâmico */}
+          <View style={[styles.mainCard, { borderLeftWidth: 4, borderLeftColor: statusColor }]}>
             <View style={styles.headerCard}>
               <Text style={styles.consultaTitulo}>Consulta Médica</Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusColor(consulta.status) },
-                ]}
-              >
+              <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                 <Text style={styles.statusText}>
-                  {normalizeStatus(consulta.status) || "PENDENTE"}
+                  {normalizeStatusConsulta(consulta.status) || "PENDENTE"}
                 </Text>
               </View>
             </View>
@@ -194,10 +197,10 @@ export default function DetalheConsulta({ route }) {
             </View>
           </View>
 
-          {/* Paciente */}
+          {/* Paciente - ✅ com borderLeftColor dinâmico */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Paciente</Text>
-            <View style={styles.sectionCard}>
+            <View style={[styles.sectionCard, { borderLeftColor: statusColor }]}>
               <Text style={styles.sectionNome}>{getPacienteNome()}</Text>
               <Text style={styles.sectionInfo}>Tipo: {getTipoPaciente()}</Text>
               {consulta.dependente?.grauParentesco && (
@@ -208,10 +211,10 @@ export default function DetalheConsulta({ route }) {
             </View>
           </View>
 
-          {/* Médico */}
+          {/* Médico - ✅ com borderLeftColor dinâmico */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Médico</Text>
-            <View style={styles.sectionCard}>
+            <View style={[styles.sectionCard, { borderLeftColor: statusColor }]}>
               <Text style={styles.sectionNome}>{getMedicoNome()}</Text>
               <Text style={styles.sectionInfo}>
                 Especialidade: {getEspecialidade()}
@@ -224,11 +227,11 @@ export default function DetalheConsulta({ route }) {
             </View>
           </View>
 
-          {/* Colaborador (Solicitante) */}
+          {/* Colaborador (Solicitante) - ✅ com borderLeftColor dinâmico */}
           {consulta.colaborador && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Solicitante</Text>
-              <View style={styles.colaboradorCard}>
+              <View style={[styles.colaboradorCard, { borderLeftColor: statusColor }]}>
                 <Text style={styles.colaboradorNome}>
                   {consulta.colaborador.nome || "Nome não informado"}
                 </Text>
@@ -246,11 +249,11 @@ export default function DetalheConsulta({ route }) {
             </View>
           )}
 
-          {/* Observações */}
+          {/* Observações - ✅ com borderLeftColor dinâmico */}
           {consulta.observacoes && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Observações</Text>
-              <View style={styles.observacoesCard}>
+              <View style={[styles.observacoesCard, { borderLeftColor: statusColor }]}>
                 <Text style={styles.observacoesText}>
                   {consulta.observacoes}
                 </Text>
@@ -258,7 +261,7 @@ export default function DetalheConsulta({ route }) {
             </View>
           )}
 
-          {/* Ações: Reagendar / Cancelar (somente se agendado) */}
+          {/* Ações: Reagendar / Cancelar */}
           {isAgendado() && (
             <View style={styles.actionsContainer}>
               <TouchableOpacity
@@ -298,7 +301,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Card Principal
   mainCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
@@ -326,6 +328,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#00000030",
   },
   statusText: {
     color: "#FFFFFF",
@@ -354,7 +358,6 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  // Seções
   section: {
     marginBottom: 16,
   },
@@ -365,11 +368,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionCard: {
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#F8F7F7",
     borderRadius: 8,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#065F46",
   },
   sectionNome: {
     fontSize: 16,
@@ -383,13 +385,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
 
-  // Colaborador
   colaboradorCard: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#F8F7F7",
     borderRadius: 8,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#065F46",
   },
   colaboradorNome: {
     fontSize: 16,
@@ -403,13 +403,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
 
-  // Observações
   observacoesCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 8,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#3B82F6",
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -422,7 +420,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Ações
   actionsContainer: {
     marginTop: 8,
     marginBottom: 24,

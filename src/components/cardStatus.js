@@ -12,6 +12,7 @@ function getStatusColor(status) {
     if (statusLower.includes("aprovado") || statusLower.includes("APROVADO")) return "#065F46";
     if (statusLower.includes("negado")) return "#DC2626";
     if (statusLower.includes("agendado")) return "#315fd3ff";
+    if (statusLower.includes("agendada")) return "#315fd3ff";
     
     if (statusLower.includes("cancelado")) return "#DC2626";
     if (statusLower.includes("recusada")) return "#DC2626";

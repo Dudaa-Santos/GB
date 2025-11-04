@@ -18,12 +18,36 @@ import { buscarDocumentoporId, documentoUrl } from "../service/authService";
 import { File, Directory, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
+// ✅ Função EXATAMENTE IGUAL ao cardStatus.js - ORDEM CORRETA
+function getStatusColor(status) {
+    if (!status) return "#6B7280";
+
+    const statusLower = status.toLowerCase();
+
+    // ✅ PEND. ASSINAR TEM QUE VIR ANTES DE PENDENTE
+    if (statusLower.includes("pend. assinar") || statusLower.includes("pendente_assinatura")) return "#315fd3ff"; // Azul
+    if (statusLower.includes("pendente")) return "#F59E0B"; // Laranja
+    if (statusLower.includes("aprovado") || statusLower.includes("aprovada")) return "#065F46"; // Verde escuro
+    if (statusLower.includes("recusada") || statusLower.includes("negado")) return "#DC2626"; // Vermelho
+
+    // Consultas
+    if (statusLower.includes("agendado") || statusLower.includes("agendada")) return "#315fd3ff"; // Azul
+    if (statusLower.includes("concluído") || statusLower.includes("concluida")) return "#065F46"; // Verde
+    if (statusLower.includes("cancelado") || statusLower.includes("cancelada")) return "#DC2626"; // Vermelho
+    if (statusLower.includes("faltou")) return "#F59E0B"; // Laranja
+
+    return "#065F46"; // Verde padrão
+}
+
 export default function DetalheBeneficio({ route }) {
   const { solicitacao } = route?.params || {};
   const [documentos, setDocumentos] = useState([]);
   const [documentosUrls, setDocumentosUrls] = useState({});
   const [loadingDocumentos, setLoadingDocumentos] = useState(true);
-  const [loadingUrlMap, setLoadingUrlMap] = useState({}); // loading por documento (ícones)
+  const [loadingUrlMap, setLoadingUrlMap] = useState({});
+
+  // ✅ Agora a função já está declarada
+  const statusColor = getStatusColor(solicitacao?.status);
 
   // Função para normalizar o status
   const normalizeStatus = (status) => {
@@ -31,7 +55,6 @@ export default function DetalheBeneficio({ route }) {
     
     const statusUpper = status.toUpperCase();
     
-    // Transforma PENDENTE_ASSINATURA em Pend. Assinar
     if (statusUpper === "PENDENTE_ASSINATURA") {
       return "Pend. Assinar";
     }
@@ -73,7 +96,6 @@ export default function DetalheBeneficio({ route }) {
     fetchDocumentos();
   }, [solicitacao]);
 
-  // Buscar URLs para todos os documentos (com mini-loading por doc)
   useEffect(() => {
     const fetchDocumentosUrls = async () => {
       if (documentos.length === 0) return;
@@ -139,7 +161,6 @@ export default function DetalheBeneficio({ route }) {
     return documentosUrls[key] || "";
   };
 
-  // Abrir em app externo / navegador
   const handleVisualizar = async (documento) => {
     try {
       const url = getDocumentoUrl(documento);
@@ -157,7 +178,6 @@ export default function DetalheBeneficio({ route }) {
     }
   };
 
-  // Helper: gera um File destino com nome único (nome, nome (1), nome (2)...)
   const getUniqueDestFile = (dir, filename) => {
     const dot = filename.lastIndexOf(".");
     const base = dot > 0 ? filename.slice(0, dot) : filename;
@@ -171,7 +191,6 @@ export default function DetalheBeneficio({ route }) {
     return candidate;
   };
 
-  // Download silencioso nativo (gera nome único se existir)
   const handleBaixarNative = async (documento) => {
     const url = getDocumentoUrl(documento);
     if (!url) return;
@@ -209,7 +228,6 @@ export default function DetalheBeneficio({ route }) {
     }
   };
 
-  // ===== Helpers visuais e metadata =====
   const getNomeArquivo = (documento) => {
     return (
       documento.nomeArquivoOriginal ||
@@ -249,15 +267,6 @@ export default function DetalheBeneficio({ route }) {
       wav: "audio/wav",
     };
     return map[(ext || "").toLowerCase()] || "application/octet-stream";
-  };
-
-  const getStatusColor = (status) => {
-    if (!status) return "#6B7280";
-    const s = status.toLowerCase();
-    if (s.includes("pendente")) return "#F59E0B";
-    if (s.includes("aprovado")) return "#065F46";
-    if (s.includes("negado")) return "#DC2626";
-    return "#6B7280";
   };
 
   const formatDate = (dateString) => {
@@ -313,10 +322,11 @@ export default function DetalheBeneficio({ route }) {
             icone={require("../images/icones/history_g.png")}
           />
 
-          <View style={styles.mainCard}>
+          {/* Card Principal */}
+          <View style={[styles.mainCard, { borderLeftWidth: 4, borderLeftColor: statusColor }]}>
             <View style={styles.headerCard}>
               <Text style={styles.beneficioTitulo}>{getBeneficioNome()}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(solicitacao.status) }]}>
+              <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                 <Text style={styles.statusText}>
                   {normalizeStatus(solicitacao.status) || "PENDENTE"}
                 </Text>
@@ -356,7 +366,7 @@ export default function DetalheBeneficio({ route }) {
           {solicitacao.descricao && (
             <View style={styles.descricaoSection}>
               <Text style={styles.sectionTitle}>Descrição</Text>
-              <View style={styles.descricaoCard}>
+              <View style={[styles.descricaoCard, { borderLeftColor: statusColor }]}>
                 <Text style={styles.descricaoText}>{solicitacao.descricao}</Text>
               </View>
             </View>
@@ -386,7 +396,6 @@ export default function DetalheBeneficio({ route }) {
 
                       return (
                         <View key={key} style={styles.docRow}>
-                          {/* Tile verde com label do tipo */}
                           <View style={styles.tile}>
                             <View style={styles.tileInner} />
                             <Text style={styles.tileText}>
@@ -394,14 +403,12 @@ export default function DetalheBeneficio({ route }) {
                             </Text>
                           </View>
 
-                          {/* Nome do arquivo */}
                           <View style={styles.docNameWrap}>
                             <Text numberOfLines={1} style={styles.docName}>
                               {getNomeArquivo(documento)}
                             </Text>
                           </View>
 
-                          {/* Ações */}
                           <View style={styles.actions}>
                             {miniLoading ? (
                               <ActivityIndicator size="small" color="#111827" />
@@ -416,7 +423,6 @@ export default function DetalheBeneficio({ route }) {
                                     pressed && styles.iconBtnPressed,
                                   ]}
                                 >
-                                  {/* Olho */}
                                   <View style={styles.iconOnly}>
                                     <View style={styles.eyeOuter} />
                                     <View style={styles.eyePupil} />
@@ -432,7 +438,6 @@ export default function DetalheBeneficio({ route }) {
                                     pressed && styles.iconBtnPressed,
                                   ]}
                                 >
-                                  {/* Download com sublinhado */}
                                   <View style={styles.downloadWrap}>
                                     <View style={styles.downloadArrowHead} />
                                     <View style={styles.downloadArrowStem} />
@@ -473,7 +478,7 @@ export default function DetalheBeneficio({ route }) {
           {solicitacao.colaborador && (
             <View style={styles.colaboradorSection}>
               <Text style={styles.sectionTitle}>Solicitante</Text>
-              <View style={styles.colaboradorCard}>
+              <View style={[styles.colaboradorCard, { borderLeftColor: statusColor }]}>
                 <Text style={styles.colaboradorNome}>{solicitacao.colaborador.nome || "Nome não informado"}</Text>
                 {solicitacao.colaborador.matricula && (
                   <Text style={styles.colaboradorInfo}>Matrícula: {solicitacao.colaborador.matricula}</Text>
@@ -489,7 +494,7 @@ export default function DetalheBeneficio({ route }) {
           {solicitacao.dependente && (
             <View style={styles.dependenteSection}>
               <Text style={styles.sectionTitle}>Dependente</Text>
-              <View style={styles.dependenteCard}>
+              <View style={[styles.dependenteCard, { borderLeftColor: statusColor }]}>
                 <Text style={styles.dependenteNome}>{solicitacao.dependente.nome || "Nome não informado"}</Text>
                 <Text style={styles.dependenteInfo}>
                   Grau de Parentesco: {solicitacao.dependente.grauParentesco || "Não informado"}
@@ -531,9 +536,14 @@ const styles = StyleSheet.create({
   },
   headerCard: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   beneficioTitulo: { fontSize: 18, fontWeight: "bold", color: "#1F2937", flex: 1 },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  statusBadge: { 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#00000030",
+  },
   statusText: { color: "#FFFFFF", fontSize: 12, fontWeight: "600" },
-
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -543,16 +553,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 14, color: "#6B7280", fontWeight: "500", flex: 1 },
   infoValue: { fontSize: 14, color: "#1F2937", fontWeight: "600", flex: 1, textAlign: "right" },
-
   sectionTitle: { fontSize: 16, fontWeight: "bold", color: "#1F2937", marginBottom: 12 },
-
   descricaoSection: { marginBottom: 16 },
   descricaoCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 8,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#065F46",
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -560,9 +567,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   descricaoText: { fontSize: 15, color: "#1F2937", lineHeight: 22, textAlign: "left", fontWeight: "400" },
-
   documentosSection: { marginBottom: 16 },
-
   loadingContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -573,10 +578,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   loadingText: { marginTop: 12, fontSize: 14, color: "#6B7280", textAlign: "center" },
-
   documentosStatus: { fontSize: 15, color: "#1F2937", fontWeight: "600", marginBottom: 12 },
-
-  // ===== Documento (card igual ao print) =====
   docRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -591,8 +593,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-
-  // tile verde à esquerda
   tile: {
     width: 44,
     height: 44,
@@ -617,12 +617,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.6,
   },
-
-  // nome do arquivo
   docNameWrap: { flex: 1, paddingRight: 8 },
   docName: { fontSize: 14, color: "#111827" },
-
-  // ações (olho + download)
   actions: {
     flexDirection: "row",
     alignItems: "center",
@@ -638,8 +634,6 @@ const styles = StyleSheet.create({
   },
   iconBtnPressed: { opacity: 0.8 },
   iconBtnDisabled: { opacity: 0.45 },
-
-  // olho desenhado
   iconOnly: { 
     width: 22, 
     height: 16, 
@@ -664,8 +658,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#111827",
     top: 3,
   },
-
-  // download com sublinhado
   downloadWrap: {
     width: 22,
     height: 22,
@@ -697,16 +689,36 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: "#111827",
   },
-
   parcelamentoSection: { marginBottom: 16 },
-
   colaboradorSection: { marginBottom: 16 },
-  colaboradorCard: { backgroundColor: "#F9FAFB", borderRadius: 8, padding: 16, borderLeftWidth: 4, borderLeftColor: "#065F46" },
+  colaboradorCard: { 
+    backgroundColor: "#F8F7F7",
+    borderRadius: 8, 
+    padding: 16, 
+    borderLeftWidth: 4,
+  },
   colaboradorNome: { fontSize: 16, fontWeight: "bold", color: "#1F2937", marginBottom: 4 },
   colaboradorInfo: { fontSize: 14, color: "#6B7280", marginBottom: 2 },
-
   dependenteSection: { marginBottom: 16 },
-  dependenteCard: { backgroundColor: "#EFF6FF", borderRadius: 8, padding: 16, borderLeftWidth: 4, borderLeftColor: "#3B82F6" },
+  dependenteCard: { 
+    backgroundColor: "#F8F7F7",
+    borderRadius: 8, 
+    padding: 16, 
+    borderLeftWidth: 4,
+  },
   dependenteNome: { fontSize: 16, fontWeight: "bold", color: "#1F2937", marginBottom: 4 },
   dependenteInfo: { fontSize: 14, color: "#6B7280" },
+  noDocumentosCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+  },
+  noDocumentosText: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+  },
 });
