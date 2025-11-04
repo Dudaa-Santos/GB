@@ -1,6 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { RadioButton } from "react-native-paper";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 
 export default function RadioGroup({
   options = [],
@@ -10,16 +9,26 @@ export default function RadioGroup({
   direction = "row", // "row" ou "column"
 }) {
   return (
-    <RadioButton.Group onValueChange={onChange} value={value}>
-      <View style={[styles.group, direction === "row" ? styles.row : styles.column]}>
-        {options.map((opt) => (
-          <View key={opt.value} style={styles.option}>
-            <RadioButton value={opt.value} color={color} />
+    <View style={[styles.group, direction === "row" ? styles.row : styles.column]}>
+      {options.map((opt) => {
+        const isSelected = opt.value === value;
+        
+        return (
+          <Pressable
+            key={opt.value}
+            style={styles.option}
+            onPress={() => onChange(opt.value)}
+          >
+            <View style={[styles.radioOuter, isSelected && { borderColor: color }]}>
+              {isSelected && (
+                <View style={[styles.radioInner, { backgroundColor: color }]} />
+              )}
+            </View>
             <Text style={styles.label}>{opt.label}</Text>
-          </View>
-        ))}
-      </View>
-    </RadioButton.Group>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -41,7 +50,23 @@ const styles = StyleSheet.create({
     marginRight: 16,
     marginBottom: 8,
   },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#9CA3AF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
   label: {
     fontSize: 16,
+    color: "#374151",
   },
 });

@@ -80,14 +80,37 @@ export default function CalendarioSemanalSelecionado({
 
   const listRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(350);
+  const [hasScrolledToToday, setHasScrolledToToday] = useState(false);
+
+  // ✅ Scroll inicial para a semana atual
+  useEffect(() => {
+    if (!hasScrolledToToday && weeks.length > 0 && containerWidth > 0) {
+      // Encontra o índice da semana que contém hoje
+      const todayWeekIndex = weeks.findIndex((week) => 
+        week.some((day) => day.iso === todayISO)
+      );
+      
+      if (todayWeekIndex >= 0) {
+        // Usa setTimeout para garantir que o FlatList está pronto
+        setTimeout(() => {
+          listRef.current?.scrollToIndex({ 
+            index: todayWeekIndex, 
+            animated: false 
+          });
+          setHasScrolledToToday(true);
+        }, 100);
+      }
+    }
+  }, [weeks, todayISO, containerWidth, hasScrolledToToday]);
+
+  // ✅ Reseta o flag quando o mês muda
+  useEffect(() => {
+    setHasScrolledToToday(false);
+  }, [viewMonth]);
 
   useEffect(() => {
     // mantém visível a semana do dia selecionado ao trocar de mês
-    if (!selectedISO) {
-      // Se não há data selecionada, vai para a primeira semana
-      listRef.current?.scrollToIndex({ index: 0, animated: false });
-      return;
-    }
+    if (!selectedISO || !hasScrolledToToday) return;
 
     const selectedDate = fromISO(selectedISO);
     const sameMonth =
@@ -98,8 +121,8 @@ export default function CalendarioSemanalSelecionado({
       ? weeks.findIndex((w) => w.some((d) => d.iso === selectedISO))
       : 0;
 
-    if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: false });
-  }, [viewMonth, selectedISO, weeks]);
+    if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, animated: true });
+  }, [selectedISO, weeks, hasScrolledToToday]);
 
   const select = (iso) => {
     if (!controlledISO) setInternalISO(iso);
@@ -170,8 +193,6 @@ export default function CalendarioSemanalSelecionado({
               >
                 {PT_WEEK[d.dow]}
               </Text>
-
-                
 
               <Text
                 style={[

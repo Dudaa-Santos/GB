@@ -63,20 +63,61 @@ export const buscarMedicos = async (token) => {
   }
 };
 
-export const buscarSolicitacoesporId = async (ColaboradorId, token) => {
+export const buscarSolicitacoesporId = async (ColaboradorId, token, filters = {}) => {
   try {
-    const response = await httpClient.get(`/solicitacao/colaborador/${ColaboradorId}`, {
+    console.log("=== buscarSolicitacoesporId ===");
+    console.log("ColaboradorId:", ColaboradorId);
+    console.log("Filters recebidos:", JSON.stringify(filters, null, 2));
+    
+    // Monta os query params
+    const params = new URLSearchParams();
+    params.append('colaboradorId', ColaboradorId);
+    
+    // Adiciona filtros opcionais
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        filters.status.forEach(s => params.append('status', s));
+      } else {
+        params.append('status', filters.status);
+      }
+    }
+    
+    if (filters.mes) {
+      params.append('mes', filters.mes);
+    }
+    
+    if (filters.dia) {
+      params.append('dia', filters.dia);
+    }
+    
+    if (filters.page !== undefined) {
+      params.append('page', filters.page);
+    }
+    
+    if (filters.size !== undefined) {
+      params.append('size', filters.size);
+    }
+    
+    const url = `/solicitacao?${params.toString()}`;
+    console.log("URL da requisição:", url);
+    
+    const response = await httpClient.get(url, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-
+    
+    console.log("Response status:", response.status);
+    console.log("Response data:", JSON.stringify(response.data, null, 2));
+    
     return response.data;
   } catch (error) {
+    console.error("Erro ao buscar solicitações por ID:", error);
     if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao buscar solicitação");
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
     }
-    throw new Error("Falha de conexão com o servidor");
+    throw error;
   }
 };
 
@@ -154,17 +195,60 @@ export const agendarConsulta = async (data, token) => {
   }
 };
 
-export const buscarAgendamentoPorId = async (ColaboradorId, token) => {
+export const buscarAgendamentoPorId = async (colaboradorId, token, filters = {}) => {
   try {
-    const response = await httpClient.get(`/agendamento/${ColaboradorId}`, {
-      headers: { Authorization: `Bearer ${token}` }
+    console.log("=== buscarAgendamentoPorId ===");
+    console.log("ColaboradorId:", colaboradorId);
+    console.log("Filters recebidos:", JSON.stringify(filters, null, 2));
+    
+    const params = new URLSearchParams();
+    params.append('colaboradorId', colaboradorId);
+    
+    // Adiciona filtros opcionais
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        filters.status.forEach(s => params.append('status', s));
+      } else {
+        params.append('status', filters.status);
+      }
+    }
+    
+    if (filters.mes) {
+      params.append('mes', filters.mes);
+    }
+    
+    if (filters.dia) {
+      params.append('dia', filters.dia);
+    }
+    
+    if (filters.page !== undefined) {
+      params.append('page', filters.page);
+    }
+    
+    if (filters.size !== undefined) {
+      params.append('size', filters.size);
+    }
+    
+    const url = `/agendamento?${params.toString()}`;
+    console.log("URL da requisição:", url);
+    
+    const response = await httpClient.get(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
+    
+    console.log("Response status:", response.status);
+    console.log("Response data:", JSON.stringify(response.data, null, 2));
+    
     return response.data;
   } catch (error) {
+    console.error("Erro ao buscar agendamentos por ID:", error);
     if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao buscar agendamento");
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
     }
-    throw new Error("Falha de conexão com o servidor");
+    throw error;
   }
 };
 

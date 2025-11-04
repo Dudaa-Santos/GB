@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable } from "react-native";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
 import TabSwitch from "../components/tabSwitch";
 import CardStatus from "../components/cardStatus";
+import Pagination from "../components/pagination";
 import { useNavigation } from "@react-navigation/native";
 import { buscarSolicitacoesporId, buscarAgendamentoPorId } from "../service/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -11,29 +12,51 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function Historico() {
     const [selectedTab, setSelectedTab] = useState("historicoConsulta");
     const navigation = useNavigation();
+    
+    // Estados para benefícios
     const [solicitacoes, setSolicitacoes] = useState([]);
-    const [consultas, setConsultas] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [paginaBeneficio, setPaginaBeneficio] = useState(0);
+    const [totalPagesBeneficio, setTotalPagesBeneficio] = useState(1);
+    const [filtroStatusBeneficio, setFiltroStatusBeneficio] = useState("TODOS");
+    
+    // Estados para consultas
+    const [consultas, setConsultas] = useState([]);
     const [loadingConsultas, setLoadingConsultas] = useState(false);
     const [errorConsultas, setErrorConsultas] = useState(null);
+    const [paginaConsulta, setPaginaConsulta] = useState(0);
+    const [totalPagesConsulta, setTotalPagesConsulta] = useState(1);
+    const [filtroStatusConsulta, setFiltroStatusConsulta] = useState("TODOS");
 
-    // Função para normalizar o status e deixá-lo mais curto
+    const PAGE_SIZE = 8;
+
+    // Opções de filtro para benefícios
+    const STATUS_BENEFICIO = [
+        { label: "Todos", value: "TODOS" },
+        { label: "Pendente", value: "PENDENTE" },
+        { label: "Aprovada", value: "APROVADA" },
+        { label: "Recusada", value: "RECUSADA" },
+        { label: "Pend. Assinatura", value: "PENDENTE_ASSINATURA" },
+    ];
+
+    // Opções de filtro para consultas
+    const STATUS_CONSULTA = [
+        { label: "Todos", value: "TODOS" },
+        { label: "Agendado", value: "AGENDADO" },
+        { label: "Concluído", value: "CONCLUIDO" },
+        { label: "Cancelado", value: "CANCELADO" },
+        { label: "Faltou", value: "FALTOU" },
+    ];
+
     const normalizeStatus = (status) => {
         if (!status) return "PENDENTE";
-        
         const statusUpper = status.toUpperCase();
-        
-        // Transforma PENDENTE_ASSINATURA em PEND. Assinar
-        if (statusUpper === "PENDENTE_ASSINATURA") {
-            return "PEND. Assinar";
-        }
-        
+        if (statusUpper === "PENDENTE_ASSINATURA") return "Pend. Assinar";
         return status;
     };
 
-    // Função para buscar solicitações
-    const fetchSolicitacoes = async () => {
+    const fetchSolicitacoes = async (pagina = 0, statusFiltro = filtroStatusBeneficio) => {
         try {
             setLoading(true);
             setError(null);
@@ -41,86 +64,55 @@ export default function Historico() {
             const token = await AsyncStorage.getItem("token");
             const id = await AsyncStorage.getItem("id");
             
-            if (!token) {
-                setError("Token não encontrado. Faça login novamente.");
+            if (!token || !id) {
+                setError("Sessão expirada. Faça login novamente.");
                 return;
             }
+            
+            const params = {
+                page: pagina,
+                size: PAGE_SIZE,
+            };
 
-            if (!id) {
-                setError("ID do colaborador não encontrado. Faça login novamente.");
-                return;
+            // Adiciona filtro de status se não for "TODOS"
+            if (statusFiltro !== "TODOS") {
+                params.status = statusFiltro;
             }
             
-            const response = await buscarSolicitacoesporId(id, token);
+            console.log("🔍 Buscando benefícios:", params);
             
-            // Extrai os dados da estrutura da API
+            const response = await buscarSolicitacoesporId(id, token, params);
+            
             let solicitacoesArray = [];
-            if (response && response.success && response.data) {
+            let totalPages = 1;
+            let totalElements = 0;
+            
+            if (response && response.data && Array.isArray(response.data)) {
                 solicitacoesArray = response.data;
+                totalPages = response.meta?.totalPages || 
+                            response.totalPages || 
+                            Math.ceil((response.meta?.totalElements || response.totalElements || solicitacoesArray.length) / PAGE_SIZE);
+                totalElements = response.meta?.totalElements || response.totalElements || solicitacoesArray.length;
             } else if (Array.isArray(response)) {
                 solicitacoesArray = response;
-            } else if (response && Array.isArray(response.solicitacoes)) {
-                solicitacoesArray = response.solicitacoes;
-            } else if (response && response.data && Array.isArray(response.data)) {
-                solicitacoesArray = response.data;
-            } else {
-                solicitacoesArray = [];
+                totalElements = response.length;
+                totalPages = Math.ceil(totalElements / PAGE_SIZE);
             }
             
-            setSolicitacoes(Array.isArray(solicitacoesArray) ? solicitacoesArray : []);
+            console.log("✅ Benefícios:", solicitacoesArray.length, "Total páginas:", totalPages);
+            
+            setSolicitacoes(solicitacoesArray);
+            setTotalPagesBeneficio(totalPages);
             
         } catch (error) {
+            console.error("❌ Erro ao buscar benefícios:", error);
             setError(`Erro ao carregar solicitações: ${error.message}`);
         } finally {
             setLoading(false);
         }
     };
 
-    // Função para obter nome do paciente da consulta
-    const getPacienteNome = (consulta) => {
-        if (consulta.dependente && consulta.dependente.nome) {
-            return consulta.dependente.nome;
-        }
-        if (consulta.colaborador && consulta.colaborador.nome) {
-            return consulta.colaborador.nome;
-        }
-        return "Paciente não informado";
-    };
-
-    // Função para obter nome do médico
-    const getMedicoNome = (consulta) => {
-        if (consulta.medico && consulta.medico.nome) {
-            return consulta.medico.nome;
-        }
-        return "Médico não informado";
-    };
-
-    // Função para obter especialidade (extrai o nome do objeto)
-    const getEspecialidadeNome = (consulta) => {
-        if (consulta.medico && consulta.medico.especialidade) {
-            if (typeof consulta.medico.especialidade === "object" && consulta.medico.especialidade.nome) {
-                return consulta.medico.especialidade.nome;
-            }
-            if (typeof consulta.medico.especialidade === "string") {
-                return consulta.medico.especialidade;
-            }
-        }
-        return null;
-    };
-
-    // Função para determinar o tipo de paciente
-    const getTipoPaciente = (consulta) => {
-        if (consulta.dependente && consulta.dependente.nome) {
-            return "Dependente";
-        }
-        if (consulta.colaborador && consulta.colaborador.nome) {
-            return "Colaborador";
-        }
-        return "Não informado";
-    };
-
-    // Função para buscar consultas (agendamentos)
-    const fetchConsultas = async () => {
+    const fetchConsultas = async (pagina = 0, statusFiltro = filtroStatusConsulta) => {
         try {
             setLoadingConsultas(true);
             setErrorConsultas(null);
@@ -128,198 +120,219 @@ export default function Historico() {
             const token = await AsyncStorage.getItem("token");
             const id = await AsyncStorage.getItem("id");
             
-            if (!token) {
-                setErrorConsultas("Token não encontrado. Faça login novamente.");
-                return;
-            }
-
-            if (!id) {
-                setErrorConsultas("ID do colaborador não encontrado. Faça login novamente.");
+            if (!token || !id) {
+                setErrorConsultas("Sessão expirada. Faça login novamente.");
                 return;
             }
             
-            const response = await buscarAgendamentoPorId(id, token);
+            const params = {
+                page: pagina,
+                size: PAGE_SIZE,
+            };
+
+            // Adiciona filtro de status se não for "TODOS"
+            if (statusFiltro !== "TODOS") {
+                params.status = statusFiltro;
+            }
+            
+            console.log("🔍 Buscando consultas:", params);
+            
+            const response = await buscarAgendamentoPorId(id, token, params);
             
             let consultasArray = [];
-            if (Array.isArray(response)) {
+            let totalPages = 1;
+            let totalElements = 0;
+            
+            if (response && response.data && Array.isArray(response.data)) {
+                consultasArray = response.data;
+                totalPages = response.meta?.totalPages || 
+                            response.totalPages || 
+                            Math.ceil((response.meta?.totalElements || response.totalElements || consultasArray.length) / PAGE_SIZE);
+                totalElements = response.meta?.totalElements || response.totalElements || consultasArray.length;
+            } else if (Array.isArray(response)) {
                 consultasArray = response;
-            } else if (response && Array.isArray(response.data)) {
-                consultasArray = response.data;
-            } else if (response && response.success && Array.isArray(response.data)) {
-                consultasArray = response.data;
-            } else {
-                consultasArray = [];
+                totalElements = response.length;
+                totalPages = Math.ceil(totalElements / PAGE_SIZE);
             }
             
+            console.log("✅ Consultas:", consultasArray.length, "Total páginas:", totalPages);
+            
             setConsultas(consultasArray);
+            setTotalPagesConsulta(totalPages);
             
         } catch (error) {
+            console.error("❌ Erro ao buscar consultas:", error);
             setErrorConsultas(`Erro ao carregar consultas: ${error.message}`);
         } finally {
             setLoadingConsultas(false);
         }
     };
 
-    // Carregar dados quando o componente montar
+    const handleBeneficioPageChange = (novaPagina) => {
+        setPaginaBeneficio(novaPagina);
+        fetchSolicitacoes(novaPagina, filtroStatusBeneficio);
+    };
+
+    const handleConsultaPageChange = (novaPagina) => {
+        setPaginaConsulta(novaPagina);
+        fetchConsultas(novaPagina, filtroStatusConsulta);
+    };
+
+    const handleFiltroStatusBeneficio = (novoStatus) => {
+        setFiltroStatusBeneficio(novoStatus);
+        setPaginaBeneficio(0); // Volta para primeira página
+        fetchSolicitacoes(0, novoStatus);
+    };
+
+    const handleFiltroStatusConsulta = (novoStatus) => {
+        setFiltroStatusConsulta(novoStatus);
+        setPaginaConsulta(0); // Volta para primeira página
+        fetchConsultas(0, novoStatus);
+    };
+
+    const getPacienteNome = (consulta) => {
+        if (consulta.dependente?.nome) return consulta.dependente.nome;
+        if (consulta.colaborador?.nome) return consulta.colaborador.nome;
+        return "Paciente não informado";
+    };
+
+    const getMedicoNome = (consulta) => {
+        return consulta.medico?.nome || "Médico não informado";
+    };
+
+    const getEspecialidadeNome = (consulta) => {
+        if (consulta.medico?.especialidade) {
+            if (typeof consulta.medico.especialidade === "object") {
+                return consulta.medico.especialidade.nome;
+            }
+            return consulta.medico.especialidade;
+        }
+        return null;
+    };
+
+    const getTipoPaciente = (consulta) => {
+        if (consulta.dependente?.nome) return "Dependente";
+        if (consulta.colaborador?.nome) return "Colaborador";
+        return "Não informado";
+    };
+
     useEffect(() => {
-        fetchSolicitacoes();
-        fetchConsultas();
+        fetchSolicitacoes(0);
+        fetchConsultas(0);
     }, []);
 
-    // Recarregar quando trocar de aba
-    useEffect(() => {
-        if (selectedTab === "historicoSolicitacoes") {
-            fetchSolicitacoes();
-        } else if (selectedTab === "historicoConsulta") {
-            fetchConsultas();
-        }
-    }, [selectedTab]);
-
-    // Função para formatar data
     const formatDate = (dateString) => {
         if (!dateString) return "Data não informada";
         try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString("pt-BR");
-        } catch (error) {
+            return new Date(dateString).toLocaleDateString("pt-BR");
+        } catch {
             return dateString;
         }
     };
 
-    // Função para formatar data e hora da consulta
     const formatDateTime = (dateString) => {
         if (!dateString) return "Data não informada";
         try {
             const date = new Date(dateString);
-            return (
-                date.toLocaleDateString("pt-BR") +
-                " • " +
-                date.toLocaleTimeString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })
-            );
-        } catch (error) {
+            return date.toLocaleDateString("pt-BR") + " • " + 
+                   date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        } catch {
             return dateString;
         }
     };
 
-    // Função para obter o "nome" da solicitação (ex: nome do benefício ou descrição)
     const getSolicitacaoNome = (solicitacao) => {
-        // A API ainda usa o campo beneficio, então mantemos essa leitura
-        if (solicitacao.beneficio && solicitacao.beneficio.nome) {
-            return solicitacao.beneficio.nome;
-        }
-        if (solicitacao.descricao) {
-            return solicitacao.descricao;
-        }
+        if (solicitacao.beneficio?.nome) return solicitacao.beneficio.nome;
+        if (solicitacao.descricao) return solicitacao.descricao;
         return "Solicitação";
     };
 
-    // Função para navegar para detalhes da solicitação
     const handleSolicitacaoPress = (solicitacao) => {
-        try {
-            const solicitacaoSerializavel = {
-                id: solicitacao.id,
-                status: solicitacao.status,
-                dataSolicitacao: solicitacao.dataSolicitacao,
-                valorTotal: solicitacao.valorTotal,
-                qtdeParcelas: solicitacao.qtdeParcelas,
-                tipoPagamento: solicitacao.tipoPagamento,
-                desconto: solicitacao.desconto,
-                descricao: solicitacao.descricao,
-                beneficio: solicitacao.beneficio
-                    ? {
-                          nome: solicitacao.beneficio.nome,
-                      }
-                    : null,
-                colaborador: solicitacao.colaborador
-                    ? {
-                          nome: solicitacao.colaborador.nome,
-                          matricula: solicitacao.colaborador.matricula,
-                          email: solicitacao.colaborador.email,
-                      }
-                    : null,
-                dependente: solicitacao.dependente
-                    ? {
-                          nome: solicitacao.dependente.nome,
-                          grauParentesco: solicitacao.dependente.grauParentesco,
-                      }
-                    : null,
-            };
-
-            navigation.navigate("DetalheBeneficio", {
-                solicitacao: solicitacaoSerializavel,
-            });
-        } catch (error) {
-            navigation.navigate("DetalheBeneficio", {
-                solicitacao: {
-                    id: solicitacao.id,
-                    status: solicitacao.status || "PENDENTE",
-                    descricao: solicitacao.descricao || "Solicitação",
-                },
-            });
-        }
+        const solicitacaoSerializavel = {
+            id: solicitacao.id,
+            status: solicitacao.status,
+            dataSolicitacao: solicitacao.dataSolicitacao,
+            valorTotal: solicitacao.valorTotal,
+            qtdeParcelas: solicitacao.qtdeParcelas,
+            tipoPagamento: solicitacao.tipoPagamento,
+            desconto: solicitacao.desconto,
+            descricao: solicitacao.descricao,
+            beneficio: solicitacao.beneficio ? { nome: solicitacao.beneficio.nome } : null,
+            colaborador: solicitacao.colaborador ? {
+                nome: solicitacao.colaborador.nome,
+                matricula: solicitacao.colaborador.matricula,
+                email: solicitacao.colaborador.email,
+            } : null,
+            dependente: solicitacao.dependente ? {
+                nome: solicitacao.dependente.nome,
+                grauParentesco: solicitacao.dependente.grauParentesco,
+            } : null,
+        };
+        navigation.navigate("DetalheBeneficio", { solicitacao: solicitacaoSerializavel });
     };
 
-    // Função para navegar para detalhes da consulta
     const handleConsultaPress = (consulta) => {
-        console.log("=== handleConsultaPress ===");
-        console.log("Consulta original:", JSON.stringify(consulta, null, 2));
-
-        try {
-            const consultaSerializavel = {
-                idAgendamento: consulta.idAgendamento,
-                status: consulta.status,
-                horario: consulta.horario,
-                observacoes: consulta.observacoes,
-                medico: consulta.medico
-                    ? {
-                          id: consulta.medico.id,
-                          nome: consulta.medico.nome,
-                          especialidade: getEspecialidadeNome(consulta),
-                          crm: consulta.medico.crm,
-                      }
-                    : null,
-                colaborador: consulta.colaborador
-                    ? {
-                          id: consulta.colaborador.id,
-                          nome: consulta.colaborador.nome,
-                          matricula: consulta.colaborador.matricula,
-                          email: consulta.colaborador.email,
-                      }
-                    : null,
-                dependente: consulta.dependente
-                    ? {
-                          id: consulta.dependente.id,
-                          nome: consulta.dependente.nome,
-                          grauParentesco: consulta.dependente.grauParentesco,
-                      }
-                    : null,
-            };
-
-            console.log(
-                "Consulta serializada:",
-                JSON.stringify(consultaSerializavel, null, 2)
-            );
-
-            navigation.navigate("DetalheConsulta", {
-                consulta: consultaSerializavel,
-            });
-        } catch (error) {
-            console.error("=== ERRO ao navegar ===");
-            console.error("Erro:", error);
-            console.error("Stack:", error.stack);
-        }
+        const consultaSerializavel = {
+            idAgendamento: consulta.idAgendamento,
+            status: consulta.status,
+            horario: consulta.horario,
+            observacoes: consulta.observacoes,
+            medico: consulta.medico ? {
+                id: consulta.medico.id,
+                nome: consulta.medico.nome,
+                especialidade: getEspecialidadeNome(consulta),
+                crm: consulta.medico.crm,
+            } : null,
+            colaborador: consulta.colaborador ? {
+                id: consulta.colaborador.id,
+                nome: consulta.colaborador.nome,
+                matricula: consulta.colaborador.matricula,
+                email: consulta.colaborador.email,
+            } : null,
+            dependente: consulta.dependente ? {
+                id: consulta.dependente.id,
+                nome: consulta.dependente.nome,
+                grauParentesco: consulta.dependente.grauParentesco,
+            } : null,
+        };
+        navigation.navigate("DetalheConsulta", { consulta: consultaSerializavel });
     };
 
-    // Renderizar seção de solicitações
+    // Componente de Filtros
+    const renderFiltros = (opcoes, valorAtual, onChangeHandler) => (
+        <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtrosContainer}
+            contentContainerStyle={styles.filtrosContent}
+        >
+            {opcoes.map((opcao) => (
+                <Pressable
+                    key={opcao.value}
+                    onPress={() => onChangeHandler(opcao.value)}
+                    style={({ pressed }) => [
+                        styles.filtroButton,
+                        valorAtual === opcao.value && styles.filtroButtonActive,
+                        pressed && styles.filtroButtonPressed,
+                    ]}
+                >
+                    <Text style={[
+                        styles.filtroText,
+                        valorAtual === opcao.value && styles.filtroTextActive,
+                    ]}>
+                        {opcao.label}
+                    </Text>
+                </Pressable>
+            ))}
+        </ScrollView>
+    );
+
     const renderSolicitacoes = () => {
         if (loading) {
             return (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#065F46" />
-                    <Text style={styles.loadingText}>Carregando solicitações...</Text>
+                    <Text style={styles.loadingText}>Carregando benefícios...</Text>
                 </View>
             );
         }
@@ -328,40 +341,53 @@ export default function Historico() {
             return (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
-                    <Text style={styles.retryText} onPress={fetchSolicitacoes}>
+                    <Text style={styles.retryText} onPress={() => {
+                        setPaginaBeneficio(0);
+                        fetchSolicitacoes(0);
+                    }}>
                         Tentar novamente
                     </Text>
                 </View>
             );
         }
 
-        if (!solicitacoes || solicitacoes.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>
-                        Nenhuma solicitação encontrada.
-                    </Text>
-                </View>
-            );
-        }
-
         return (
-            <View>
-                {solicitacoes.map((solicitacao, index) => (
-                    <CardStatus
-                        key={solicitacao.id || index}
-                        tipo="solicitacao"
-                        titulo={getSolicitacaoNome(solicitacao)}
-                        status={normalizeStatus(solicitacao.status || "PENDENTE")}
-                        dataEnvio={formatDate(solicitacao.dataSolicitacao)}
-                        onPress={() => handleSolicitacaoPress(solicitacao)}
-                    />
-                ))}
+            <View style={styles.listContainer}>
+                {/* Filtros */}
+                {renderFiltros(STATUS_BENEFICIO, filtroStatusBeneficio, handleFiltroStatusBeneficio)}
+                
+                {solicitacoes.length === 0 ? (
+                    <View style={styles.emptyContainerSmall}>
+                        <Text style={styles.emptyText}>Nenhum benefício encontrado.</Text>
+                    </View>
+                ) : (
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollContent}
+                    >
+                        {solicitacoes.map((solicitacao, index) => (
+                            <CardStatus
+                                key={solicitacao.id || index}
+                                tipo="beneficio"
+                                titulo={getSolicitacaoNome(solicitacao)}
+                                status={normalizeStatus(solicitacao.status || "PENDENTE")}
+                                dataEnvio={formatDate(solicitacao.dataSolicitacao)}
+                                onPress={() => handleSolicitacaoPress(solicitacao)}
+                            />
+                        ))}
+                        
+                        <Pagination
+                            currentPage={paginaBeneficio}
+                            totalPages={totalPagesBeneficio}
+                            onPageChange={handleBeneficioPageChange}
+                            loading={loading}
+                        />
+                    </ScrollView>
+                )}
             </View>
         );
     };
 
-    // Renderizar seção de consultas
     const renderConsultas = () => {
         if (loadingConsultas) {
             return (
@@ -376,41 +402,51 @@ export default function Historico() {
             return (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{errorConsultas}</Text>
-                    <Text style={styles.retryText} onPress={fetchConsultas}>
+                    <Text style={styles.retryText} onPress={() => {
+                        setPaginaConsulta(0);
+                        fetchConsultas(0);
+                    }}>
                         Tentar novamente
                     </Text>
                 </View>
             );
         }
 
-        if (!consultas || consultas.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Nenhuma consulta encontrado.</Text>
-                </View>
-            );
-        }
-
         return (
-            <View>
-                {consultas.map((consulta, index) => {
-                    const paciente = getPacienteNome(consulta);
-                    const medico = getMedicoNome(consulta);
-                    const tipoPaciente = getTipoPaciente(consulta);
-
-                    return (
-                        <CardStatus
-                            key={consulta.idAgendamento || index}
-                            tipo="consulta"
-                            titulo={`${paciente}`}
-                            status={normalizeStatus(consulta.status)}
-                            dataEnvio={formatDateTime(consulta.horario)}
-                            medico={medico}
-                            tipoPaciente={tipoPaciente}
-                            onPress={() => handleConsultaPress(consulta)}
+            <View style={styles.listContainer}>
+                {/* Filtros */}
+                {renderFiltros(STATUS_CONSULTA, filtroStatusConsulta, handleFiltroStatusConsulta)}
+                
+                {consultas.length === 0 ? (
+                    <View style={styles.emptyContainerSmall}>
+                        <Text style={styles.emptyText}>Nenhuma consulta encontrada.</Text>
+                    </View>
+                ) : (
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollContent}
+                    >
+                        {consultas.map((consulta, index) => (
+                            <CardStatus
+                                key={consulta.idAgendamento || index}
+                                tipo="consulta"
+                                titulo={getPacienteNome(consulta)}
+                                status={normalizeStatus(consulta.status)}
+                                dataEnvio={formatDateTime(consulta.horario)}
+                                medico={getMedicoNome(consulta)}
+                                tipoPaciente={getTipoPaciente(consulta)}
+                                onPress={() => handleConsultaPress(consulta)}
+                            />
+                        ))}
+                        
+                        <Pagination
+                            currentPage={paginaConsulta}
+                            totalPages={totalPagesConsulta}
+                            onPageChange={handleConsultaPageChange}
+                            loading={loadingConsultas}
                         />
-                    );
-                })}
+                    </ScrollView>
+                )}
             </View>
         );
     };
@@ -425,16 +461,14 @@ export default function Historico() {
                 <TabSwitch
                     options={[
                         { label: "Consultas", value: "historicoConsulta" },
-                        { label: "Solicitações", value: "historicoSolicitacoes" },
+                        { label: "Benefícios", value: "historicoSolicitacoes" },
                     ]}
                     selected={selectedTab}
                     onSelect={setSelectedTab}
                 />
 
                 <View style={styles.contentArea}>
-                    {selectedTab === "historicoConsulta"
-                        ? renderConsultas()
-                        : renderSolicitacoes()}
+                    {selectedTab === "historicoConsulta" ? renderConsultas() : renderSolicitacoes()}
                 </View>
             </View>
         </Fundo>
@@ -442,50 +476,98 @@ export default function Historico() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 16,
+    container: { 
+        flex: 1, 
+        padding: 16 
     },
-    contentArea: {
-        flex: 1,
+    contentArea: { 
+        flex: 1 
     },
-    loadingContainer: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 40,
+    listContainer: { 
+        flex: 1 
     },
-    loadingText: {
-        marginTop: 10,
-        fontSize: 16,
+    scrollContent: { 
+        paddingBottom: 20,
+        flexGrow: 1,
+    },
+    filtrosContainer: {
+        maxHeight: 50,
+        marginBottom: 12,
+        flexGrow: 0,
+    },
+    filtrosContent: {
+        paddingRight: 16,
+        alignItems: 'center',
+    },
+    filtroButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: "#F3F4F6",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        marginRight: 8,
+        height: 36,
+        justifyContent: 'center',
+    },
+    filtroButtonActive: {
+        backgroundColor: "#065F46",
+        borderColor: "#065F46",
+    },
+    filtroButtonPressed: {
+        opacity: 0.7,
+    },
+    filtroText: {
+        fontSize: 14,
         color: "#6B7280",
+        fontWeight: "600",
     },
-    errorContainer: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 40,
+    filtroTextActive: {
+        color: "#FFFFFF",
     },
-    errorText: {
-        fontSize: 16,
-        color: "#DC2626",
-        textAlign: "center",
-        marginBottom: 10,
+    loadingContainer: { 
+        flex: 1, 
+        alignItems: "center", 
+        justifyContent: "center", 
+        padding: 40 
     },
-    retryText: {
-        fontSize: 16,
-        color: "#065F46",
-        textDecorationLine: "underline",
+    loadingText: { 
+        marginTop: 10, 
+        fontSize: 16, 
+        color: "#6B7280" 
     },
-    emptyContainer: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 40,
+    errorContainer: { 
+        flex: 1, 
+        alignItems: "center", 
+        justifyContent: "center", 
+        padding: 40 
     },
-    emptyText: {
-        fontSize: 16,
-        color: "#6B7280",
-        textAlign: "center",
+    errorText: { 
+        fontSize: 16, 
+        color: "#DC2626", 
+        textAlign: "center", 
+        marginBottom: 10 
+    },
+    retryText: { 
+        fontSize: 16, 
+        color: "#065F46", 
+        textDecorationLine: "underline" 
+    },
+    emptyContainer: { 
+        flex: 1, 
+        alignItems: "center", 
+        justifyContent: "center", 
+        padding: 40 
+    },
+    emptyContainerSmall: { 
+        alignItems: "center", 
+        justifyContent: "center", 
+        paddingVertical: 60,
+        paddingHorizontal: 40,
+    },
+    emptyText: { 
+        fontSize: 16, 
+        color: "#6B7280", 
+        textAlign: "center" 
     },
 });
