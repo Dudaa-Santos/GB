@@ -100,6 +100,21 @@ export default function Historico() {
         return "Médico não informado";
     };
 
+    // Função para obter especialidade (extrai o nome do objeto)
+    const getEspecialidadeNome = (consulta) => {
+        if (consulta.medico && consulta.medico.especialidade) {
+            // Se for objeto, pega o nome
+            if (typeof consulta.medico.especialidade === 'object' && consulta.medico.especialidade.nome) {
+                return consulta.medico.especialidade.nome;
+            }
+            // Se for string, retorna direto
+            if (typeof consulta.medico.especialidade === 'string') {
+                return consulta.medico.especialidade;
+            }
+        }
+        return null;
+    };
+
     // Função para determinar o tipo de paciente
     const getTipoPaciente = (consulta) => {
         if (consulta.dependente && consulta.dependente.nome) {
@@ -244,6 +259,49 @@ export default function Historico() {
         }
     };
 
+    // Função para navegar para detalhes da consulta
+    const handleConsultaPress = (consulta) => {
+        console.log("=== handleConsultaPress ===");
+        console.log("Consulta original:", JSON.stringify(consulta, null, 2));
+        
+        try {
+            const consultaSerializavel = {
+                idAgendamento: consulta.idAgendamento,
+                status: consulta.status,
+                horario: consulta.horario,
+                observacoes: consulta.observacoes,
+                medico: consulta.medico ? {
+                    id: consulta.medico.id,
+                    nome: consulta.medico.nome,
+                    // Extrai apenas o NOME da especialidade
+                    especialidade: getEspecialidadeNome(consulta),
+                    crm: consulta.medico.crm,
+                } : null,
+                colaborador: consulta.colaborador ? {
+                    id: consulta.colaborador.id,
+                    nome: consulta.colaborador.nome,
+                    matricula: consulta.colaborador.matricula,
+                    email: consulta.colaborador.email,
+                } : null,
+                dependente: consulta.dependente ? {
+                    id: consulta.dependente.id,
+                    nome: consulta.dependente.nome,
+                    grauParentesco: consulta.dependente.grauParentesco,
+                } : null,
+            };
+            
+            console.log("Consulta serializada:", JSON.stringify(consultaSerializavel, null, 2));
+            
+            navigation.navigate("DetalheConsulta", { 
+                consulta: consultaSerializavel
+            });
+        } catch (error) {
+            console.error("=== ERRO ao navegar ===");
+            console.error("Erro:", error);
+            console.error("Stack:", error.stack);
+        }
+    };
+
     // Renderizar seção de benefícios
     const renderBeneficios = () => {
         if (loading) {
@@ -342,6 +400,7 @@ export default function Historico() {
                             dataEnvio={formatDateTime(consulta.horario)}
                             medico={medico}
                             tipoPaciente={tipoPaciente}
+                            onPress={() => handleConsultaPress(consulta)}
                         />
                     );
                 })}

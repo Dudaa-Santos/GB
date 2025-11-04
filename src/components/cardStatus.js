@@ -29,7 +29,8 @@ export default function CardStatus({
     dataEnvio, 
     tipo = "documento", // "documento", "beneficio", "consulta"
     paciente = null, // Para consultas
-    medico = null, // Para consultas - mudança aqui
+    medico = null, // Para consultas - pode ser string ou objeto
+    tipoPaciente = null, // Para consultas
     navigateTo = null, // Rota para navegação (benefícios)
     onPress = null // Callback personalizado
 }) {
@@ -37,17 +38,25 @@ export default function CardStatus({
     const statusColor = getStatusColor(status);
     const borderColor = getBorderColor(status);
 
+    // Extrai o nome do médico se for objeto
+    const getMedicoNome = () => {
+        if (!medico) return null;
+        if (typeof medico === 'string') return medico;
+        if (medico.nome) return medico.nome;
+        return null;
+    };
+
     const handlePress = () => {
-        if (tipo === "beneficio" && (navigateTo || onPress)) {
-            if (onPress) {
-                onPress();
-            } else if (navigateTo) {
-                navigation.navigate(navigateTo);
-            }
+        if (onPress) {
+            onPress();
+        } else if (navigateTo) {
+            navigation.navigate(navigateTo);
         }
     };
 
     const renderContent = () => {
+        const medicoNome = getMedicoNome();
+
         return (
             <View style={[styles.card, { borderLeftColor: borderColor }]}>
                 <View style={styles.leftSection}>
@@ -56,11 +65,11 @@ export default function CardStatus({
                     {/* Informações específicas para consulta */}
                     {tipo === "consulta" && (
                         <View style={styles.consultaInfo}>
-                            {paciente && (
-                                <Text style={styles.pacienteText}>Paciente: {paciente}</Text>
+                            {tipoPaciente && (
+                                <Text style={styles.pacienteText}>Tipo: {tipoPaciente}</Text>
                             )}
-                            {medico && (
-                                <Text style={styles.medicoText}>Dr(a). {medico}</Text>
+                            {medicoNome && (
+                                <Text style={styles.medicoText}>Dr(a). {medicoNome}</Text>
                             )}
                         </View>
                     )}
@@ -74,8 +83,8 @@ export default function CardStatus({
         );
     };
 
-    // Se for benefício e clicável, envolver em Pressable
-    if (tipo === "beneficio" && (navigateTo || onPress)) {
+    // Se tiver onPress ou navigateTo, envolver em Pressable
+    if (navigateTo || onPress) {
         return (
             <Pressable 
                 onPress={handlePress}

@@ -13,6 +13,7 @@ import DocumentosEnviados from "../pages/documentosEnviados.js";
 import Historico from "../pages/historico.js";
 import ConsultasAgendadas from "../pages/consultasAgendadas.js";
 import DetalheBeneficio from "../pages/detalheBeneficio.js";
+import DetalheConsulta from "../pages/detalheConsulta.js";
 import AssinaturasPendentes from "../pages/assinaturasPendentes.js";
 import Chat from "../pages/chat.js";
 
@@ -60,6 +61,7 @@ export default function Routes() {
         <Stack.Screen name="Historico" component={Historico} />
         <Stack.Screen name="ConsultasAgendadas" component={ConsultasAgendadas} />
         <Stack.Screen name="DetalheBeneficio" component={DetalheBeneficio} />
+        <Stack.Screen name="DetalheConsulta" component={DetalheConsulta} />
         <Stack.Screen name="AssinaturasPendentes" component={AssinaturasPendentes} />
         <Stack.Screen name="Chat" component={Chat} />
       </Stack.Navigator>
