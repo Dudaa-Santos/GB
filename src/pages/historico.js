@@ -49,11 +49,25 @@ export default function Historico() {
         { label: "Faltou", value: "FALTOU" },
     ];
 
-    const normalizeStatus = (status) => {
+    const normalizeStatusBeneficio = (status) => {
         if (!status) return "PENDENTE";
         const statusUpper = status.toUpperCase();
         if (statusUpper === "PENDENTE_ASSINATURA") return "Pend. Assinar";
         return status;
+    };
+
+    const normalizeStatusConsulta = (status) => {
+        if (!status) return "PENDENTE";
+        const statusUpper = status.toUpperCase();
+        
+        const statusMap = {
+            "AGENDADO": "AGENDADA",
+            "CANCELADO": "CANCELADA",
+            "CONCLUIDO": "CONCLUÍDA",
+            "FALTOU": "FALTOU"
+        };
+        
+        return statusMap[statusUpper] || status;
     };
 
     const fetchSolicitacoes = async (pagina = 0, statusFiltro = filtroStatusBeneficio) => {
@@ -74,7 +88,6 @@ export default function Historico() {
                 size: PAGE_SIZE,
             };
 
-            // Adiciona filtro de status se não for "TODOS"
             if (statusFiltro !== "TODOS") {
                 params.status = statusFiltro;
             }
@@ -83,20 +96,23 @@ export default function Historico() {
             
             const response = await buscarSolicitacoesporId(id, token, params);
             
+            console.log("📦 Response completo:", JSON.stringify(response, null, 2));
+            
             let solicitacoesArray = [];
             let totalPages = 1;
-            let totalElements = 0;
             
-            if (response && response.data && Array.isArray(response.data)) {
+            // ✅ A API retorna: { success: true, data: [...], meta: { pagination: {...} } }
+            if (response?.success && response?.data && Array.isArray(response.data)) {
                 solicitacoesArray = response.data;
-                totalPages = response.meta?.totalPages || 
-                            response.totalPages || 
-                            Math.ceil((response.meta?.totalElements || response.totalElements || solicitacoesArray.length) / PAGE_SIZE);
-                totalElements = response.meta?.totalElements || response.totalElements || solicitacoesArray.length;
-            } else if (Array.isArray(response)) {
-                solicitacoesArray = response;
-                totalElements = response.length;
-                totalPages = Math.ceil(totalElements / PAGE_SIZE);
+                
+                // ✅ Pega totalPages do meta.pagination
+                if (response.meta?.pagination) {
+                    totalPages = response.meta.pagination.totalPages || 1;
+                } else {
+                    // Fallback: calcula baseado no total de elementos
+                    const totalElements = response.meta?.pagination?.totalElements || solicitacoesArray.length;
+                    totalPages = Math.ceil(totalElements / PAGE_SIZE);
+                }
             }
             
             console.log("✅ Benefícios:", solicitacoesArray.length, "Total páginas:", totalPages);
@@ -106,7 +122,19 @@ export default function Historico() {
             
         } catch (error) {
             console.error("❌ Erro ao buscar benefícios:", error);
-            setError(`Erro ao carregar solicitações: ${error.message}`);
+            
+            if (error.response?.status === 403) {
+                setError("Acesso negado. Sua sessão pode ter expirado. Faça login novamente.");
+                setTimeout(() => {
+                    AsyncStorage.multiRemove(['token', 'id', 'userEmail']);
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'Login' }],
+                    });
+                }, 2000);
+            } else {
+                setError(`Erro ao carregar solicitações: ${error.message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -130,7 +158,6 @@ export default function Historico() {
                 size: PAGE_SIZE,
             };
 
-            // Adiciona filtro de status se não for "TODOS"
             if (statusFiltro !== "TODOS") {
                 params.status = statusFiltro;
             }
@@ -139,20 +166,32 @@ export default function Historico() {
             
             const response = await buscarAgendamentoPorId(id, token, params);
             
+            console.log("📦 Response completo:", JSON.stringify(response, null, 2));
+            
             let consultasArray = [];
             let totalPages = 1;
-            let totalElements = 0;
             
-            if (response && response.data && Array.isArray(response.data)) {
-                consultasArray = response.data;
-                totalPages = response.meta?.totalPages || 
-                            response.totalPages || 
-                            Math.ceil((response.meta?.totalElements || response.totalElements || consultasArray.length) / PAGE_SIZE);
-                totalElements = response.meta?.totalElements || response.totalElements || consultasArray.length;
-            } else if (Array.isArray(response)) {
+            // ✅ Verifica se a resposta é um array direto ou vem dentro de um wrapper
+            if (Array.isArray(response)) {
+                // Se retornar array direto (sem paginação)
                 consultasArray = response;
-                totalElements = response.length;
-                totalPages = Math.ceil(totalElements / PAGE_SIZE);
+                totalPages = 1;
+            } else if (response?.data && Array.isArray(response.data)) {
+                // Se retornar com estrutura { data: [...] }
+                consultasArray = response.data;
+                
+                // Tenta pegar paginação de diferentes lugares
+                if (response.meta?.pagination) {
+                    totalPages = response.meta.pagination.totalPages || 1;
+                } else if (response.pagination) {
+                    totalPages = response.pagination.totalPages || 1;
+                } else {
+                    // Fallback: calcula baseado no total
+                    const totalElements = response.meta?.pagination?.totalElements || 
+                                         response.pagination?.totalElements || 
+                                         consultasArray.length;
+                    totalPages = Math.ceil(totalElements / PAGE_SIZE);
+                }
             }
             
             console.log("✅ Consultas:", consultasArray.length, "Total páginas:", totalPages);
@@ -162,7 +201,19 @@ export default function Historico() {
             
         } catch (error) {
             console.error("❌ Erro ao buscar consultas:", error);
-            setErrorConsultas(`Erro ao carregar consultas: ${error.message}`);
+            
+            if (error.response?.status === 403) {
+                setErrorConsultas("Acesso negado. Sua sessão pode ter expirado. Faça login novamente.");
+                setTimeout(() => {
+                    AsyncStorage.multiRemove(['token', 'id', 'userEmail']);
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'Login' }],
+                    });
+                }, 2000);
+            } else {
+                setErrorConsultas(`Erro ao carregar consultas: ${error.message}`);
+            }
         } finally {
             setLoadingConsultas(false);
         }
@@ -370,7 +421,7 @@ export default function Historico() {
                                 key={solicitacao.id || index}
                                 tipo="beneficio"
                                 titulo={getSolicitacaoNome(solicitacao)}
-                                status={normalizeStatus(solicitacao.status || "PENDENTE")}
+                                status={normalizeStatusBeneficio(solicitacao.status || "PENDENTE")}
                                 dataEnvio={formatDate(solicitacao.dataSolicitacao)}
                                 onPress={() => handleSolicitacaoPress(solicitacao)}
                             />
@@ -431,7 +482,7 @@ export default function Historico() {
                                 key={consulta.idAgendamento || index}
                                 tipo="consulta"
                                 titulo={getPacienteNome(consulta)}
-                                status={normalizeStatus(consulta.status)}
+                                status={normalizeStatusConsulta(consulta.status)}
                                 dataEnvio={formatDateTime(consulta.horario)}
                                 medico={getMedicoNome(consulta)}
                                 tipoPaciente={getTipoPaciente(consulta)}

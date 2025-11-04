@@ -69,17 +69,12 @@ export const buscarSolicitacoesporId = async (ColaboradorId, token, filters = {}
     console.log("ColaboradorId:", ColaboradorId);
     console.log("Filters recebidos:", JSON.stringify(filters, null, 2));
     
-    // Monta os query params
+    // ✅ Monta os query params
     const params = new URLSearchParams();
-    params.append('colaboradorId', ColaboradorId);
     
     // Adiciona filtros opcionais
-    if (filters.status) {
-      if (Array.isArray(filters.status)) {
-        filters.status.forEach(s => params.append('status', s));
-      } else {
-        params.append('status', filters.status);
-      }
+    if (filters.status && filters.status !== "TODOS") {
+      params.append('status', filters.status);
     }
     
     if (filters.mes) {
@@ -90,6 +85,7 @@ export const buscarSolicitacoesporId = async (ColaboradorId, token, filters = {}
       params.append('dia', filters.dia);
     }
     
+    // ✅ Paginação como query params diretos (não como objeto pageable)
     if (filters.page !== undefined) {
       params.append('page', filters.page);
     }
@@ -98,8 +94,16 @@ export const buscarSolicitacoesporId = async (ColaboradorId, token, filters = {}
       params.append('size', filters.size);
     }
     
-    const url = `/solicitacao?${params.toString()}`;
-    console.log("URL da requisição:", url);
+    if (filters.sort) {
+      const sortArray = Array.isArray(filters.sort) ? filters.sort : [filters.sort];
+      sortArray.forEach(s => params.append('sort', s));
+    }
+    
+    // ✅ Usa o colaboradorId no PATH
+    const queryString = params.toString();
+    const url = `/solicitacao/colaborador/${ColaboradorId}${queryString ? `?${queryString}` : ''}`;
+    
+    console.log("URL final:", url);
     
     const response = await httpClient.get(url, {
       headers: {
@@ -107,15 +111,15 @@ export const buscarSolicitacoesporId = async (ColaboradorId, token, filters = {}
       },
     });
     
-    console.log("Response status:", response.status);
-    console.log("Response data:", JSON.stringify(response.data, null, 2));
+    console.log("✅ Response status:", response.status);
+    console.log("✅ Response data:", JSON.stringify(response.data, null, 2));
     
     return response.data;
   } catch (error) {
-    console.error("Erro ao buscar solicitações por ID:", error);
+    console.error("❌ Erro ao buscar solicitações:", error);
     if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
+      console.error("Status:", error.response.status);
+      console.error("Data:", error.response.data);
     }
     throw error;
   }
@@ -201,16 +205,12 @@ export const buscarAgendamentoPorId = async (colaboradorId, token, filters = {})
     console.log("ColaboradorId:", colaboradorId);
     console.log("Filters recebidos:", JSON.stringify(filters, null, 2));
     
+    // ✅ Monta os query params
     const params = new URLSearchParams();
-    params.append('colaboradorId', colaboradorId);
     
     // Adiciona filtros opcionais
-    if (filters.status) {
-      if (Array.isArray(filters.status)) {
-        filters.status.forEach(s => params.append('status', s));
-      } else {
-        params.append('status', filters.status);
-      }
+    if (filters.status && filters.status !== "TODOS") {
+      params.append('status', filters.status);
     }
     
     if (filters.mes) {
@@ -221,6 +221,7 @@ export const buscarAgendamentoPorId = async (colaboradorId, token, filters = {})
       params.append('dia', filters.dia);
     }
     
+    // ✅ Paginação como query params diretos
     if (filters.page !== undefined) {
       params.append('page', filters.page);
     }
@@ -229,8 +230,16 @@ export const buscarAgendamentoPorId = async (colaboradorId, token, filters = {})
       params.append('size', filters.size);
     }
     
-    const url = `/agendamento?${params.toString()}`;
-    console.log("URL da requisição:", url);
+    if (filters.sort) {
+      const sortArray = Array.isArray(filters.sort) ? filters.sort : [filters.sort];
+      sortArray.forEach(s => params.append('sort', s));
+    }
+    
+    // ✅ Usa o colaboradorId no PATH (igual ao endpoint de solicitações)
+    const queryString = params.toString();
+    const url = `/agendamento/${colaboradorId}${queryString ? `?${queryString}` : ''}`;
+    
+    console.log("URL final:", url);
     
     const response = await httpClient.get(url, {
       headers: {
@@ -238,15 +247,15 @@ export const buscarAgendamentoPorId = async (colaboradorId, token, filters = {})
       },
     });
     
-    console.log("Response status:", response.status);
-    console.log("Response data:", JSON.stringify(response.data, null, 2));
+    console.log("✅ Response status:", response.status);
+    console.log("✅ Response data:", JSON.stringify(response.data, null, 2));
     
     return response.data;
   } catch (error) {
-    console.error("Erro ao buscar agendamentos por ID:", error);
+    console.error("❌ Erro ao buscar agendamentos:", error);
     if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
+      console.error("Status:", error.response.status);
+      console.error("Data:", error.response.data);
     }
     throw error;
   }
