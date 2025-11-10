@@ -361,3 +361,35 @@ export const assinarSolicitacao = async (idSolicitacao, token) => {
     throw new Error(error?.message || "Falha de conexão com o servidor");
   }
 };
+
+export const alterarStatusAgendamento = async (idAgendamento, novoStatus, token) => {
+  try {
+    const response = await httpClient.patch(
+      `/agendamento/${idAgendamento}/status`,
+      { status: novoStatus },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error?.response) {
+      const msg =
+        (typeof error.response.data === "string" && error.response.data) ||
+        error.response.data?.message ||
+        error.response.data?.error ||
+        "Erro ao alterar status do agendamento";
+      throw new Error(msg);
+    }
+
+    if (error?.request) {
+      throw new Error("Sem resposta do servidor. Verifique a conexão.");
+    }
+
+    throw new Error(error?.message || "Falha de conexão com o servidor");
+  }
+};

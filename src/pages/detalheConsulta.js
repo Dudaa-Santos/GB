@@ -9,6 +9,9 @@ import {
 } from "react-native";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
+import { useNavigation } from "@react-navigation/native";
+import { alterarStatusAgendamento } from "../service/authService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ✅ Função EXATAMENTE IGUAL ao cardStatus.js - ORDEM CORRETA
 function getStatusColor(status) {
@@ -33,6 +36,7 @@ function getStatusColor(status) {
 
 export default function DetalheConsulta({ route }) {
   const { consulta } = route?.params || {};
+  const navigation = useNavigation(); // ✅ Adicione se não tiver
 
   console.log("=== DetalheConsulta ===");
   console.log("Consulta recebida:", JSON.stringify(consulta, null, 2));
@@ -143,8 +147,45 @@ export default function DetalheConsulta({ route }) {
         { text: "Não", style: "cancel" },
         {
           text: "Sim",
-          onPress: () => {
-            console.log("Cancelar consulta:", consulta.idAgendamento);
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              
+              if (!consulta?.idAgendamento) {
+                Alert.alert("Erro", "ID do agendamento não encontrado");
+                return;
+              }
+
+              console.log("🔄 Cancelando agendamento:", consulta.idAgendamento);
+
+              // ✅ Chama a API para cancelar
+              await alterarStatusAgendamento(
+                consulta.idAgendamento, 
+                "CANCELADO", 
+                token
+              );
+
+              Alert.alert(
+                "Sucesso", 
+                "Consulta cancelada com sucesso!",
+                [
+                  {
+                    text: "OK",
+                    onPress: () => {
+                      // Volta para o histórico e recarrega
+                      navigation.navigate("Historico", { refresh: true });
+                    }
+                  }
+                ]
+              );
+
+            } catch (error) {
+              console.error("❌ Erro ao cancelar consulta:", error);
+              Alert.alert(
+                "Erro", 
+                error.message || "Não foi possível cancelar a consulta"
+              );
+            }
           },
         },
       ]
