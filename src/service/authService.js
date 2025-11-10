@@ -329,7 +329,7 @@ export const uploadChatDocument = async ({ file, conversationId, pendingData }, 
   }
 };
 
-export const assinarSolicitacao = async (idSolicitacao, token) => {
+export const assinarDocumento = async (idSolicitacao, token) => {
   try {
     const response = await httpClient.post(
       `/solicitacao/${idSolicitacao}/assinar`,
