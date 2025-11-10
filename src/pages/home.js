@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -21,9 +21,13 @@ import WeekPillStatic from "../components/calendarioSemanal";
 import CardHome from "../components/CardHome";
 import ButtonTextIcon from "../components/buttonTextIcon";
 
-/* ----------------------------
-   Botão flutuante com pulso
------------------------------*/
+const toISO = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 function FloatingChatButton({ onPress }) {
   const ring1 = React.useRef(new Animated.Value(0)).current;
   const ring2 = React.useRef(new Animated.Value(0)).current;
@@ -77,6 +81,8 @@ function FloatingChatButton({ onPress }) {
     }),
   });
 
+  
+
   return (
     <View pointerEvents="box-none" style={styles.floatWrap}>
       <Animated.View
@@ -121,7 +127,9 @@ export default function Home({ navigation }) {
         const data = await buscarColabPorId(id, token);
         setColaborador(data);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error("Erro ao buscar usuário:", error);
+    }
   };
 
   const fetchAgendamentos = async () => {
@@ -130,9 +138,12 @@ export default function Home({ navigation }) {
       const token = await AsyncStorage.getItem("token");
       if (id && token) {
         const data = await buscarAgendamentoPorId(id, token);
+        console.log("📅 Agendamentos recebidos:", data);
         setAgendamentos(data);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error("Erro ao buscar agendamentos:", error);
+    }
   };
 
   const fetchSolicitacoes = async () => {
@@ -143,7 +154,9 @@ export default function Home({ navigation }) {
         const data = await buscarSolicitacoesporId(id, token);
         setSolicitacoes(data);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error("Erro ao buscar solicitações:", error);
+    }
   };
 
   useEffect(() => {
@@ -164,7 +177,9 @@ export default function Home({ navigation }) {
       await AsyncStorage.removeItem("token");
       await AsyncStorage.removeItem("id");
       navigation.replace("Login");
-    } catch (error) {}
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
   const contarConsultasAgendadas = () => {
@@ -196,6 +211,31 @@ export default function Home({ navigation }) {
       (sol) => sol?.status?.toUpperCase() === "PENDENTE_ASSINATURA"
     ).length;
   };
+
+  // ✅ Extrai as datas dos agendamentos em formato ISO (YYYY-MM-DD)
+  const datasComAgendamento = useMemo(() => {
+    const lista = Array.isArray(agendamentos)
+      ? agendamentos
+      : Array.isArray(agendamentos?.data)
+      ? agendamentos.data
+      : [];
+
+    const datas = lista
+      .filter((ag) => ag?.horario) // Filtra só os que têm horário
+      .map((ag) => {
+        try {
+          const d = new Date(ag.horario);
+          return toISO(d);
+        } catch (e) {
+          console.warn("Data inválida:", ag.horario);
+          return null;
+        }
+      })
+      .filter(Boolean); // Remove nulls
+
+    console.log("🔵 Datas com agendamento (ISO):", datas);
+    return datas;
+  }, [agendamentos]);
 
   return (
     <Fundo isHome={true} scrollable={true} onLogout={handleLogout}>
@@ -260,8 +300,11 @@ export default function Home({ navigation }) {
           </View>
         </View>
 
-        <View style={styles.calendarContainer}>
-          <WeekPillStatic highlightToday={true} />
+       <View style={styles.calendarContainer}>
+          <WeekPillStatic 
+            highlightToday={true} 
+            dotsISO={datasComAgendamento} 
+          />
         </View>
 
         <Text style={styles.subtitulo}>O que você deseja fazer?</Text>
