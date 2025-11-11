@@ -111,17 +111,43 @@ export const documentoUrl = async (nomeArquivoUnico, token) => {
   }
 };
 
-export const disponibilidadeMedico = async (MedicoId, token, date) => {
+export const disponibilidadeMedico = async (idMedico, dia, token) => {
   try {
-    const response = await httpClient.get(`/medico/${MedicoId}/disponibilidade?dia=${date}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    console.log("📤 disponibilidadeMedico chamado com:", {
+      idMedico,
+      dia,
+      tokenPresente: !!token,
+      tokenLength: token?.length
     });
+
+    const response = await httpClient.get(
+      `/medico/${idMedico}/disponibilidade?dia=${dia}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("✅ Disponibilidade recebida:", response.data);
     return response.data;
   } catch (error) {
-    if (error.response) {
-      throw new Error(error.response.data.message || "Erro ao buscar disponibilidade do médico");
+    console.error("❌ Erro em disponibilidadeMedico:", error.response?.data || error.message);
+    
+    if (error?.response) {
+      const msg =
+        (typeof error.response.data === "string" && error.response.data) ||
+        error.response.data?.message ||
+        error.response.data?.error ||
+        "Erro ao buscar disponibilidade do médico";
+      throw new Error(msg);
     }
-    throw new Error("Falha de conexão com o servidor");
+
+    if (error?.request) {
+      throw new Error("Sem resposta do servidor. Verifique a conexão.");
+    }
+
+    throw new Error(error?.message || "Falha de conexão com o servidor");
   }
 };
 
@@ -383,6 +409,38 @@ export const alterarStatusAgendamento = async (idAgendamento, novoStatus, token)
         error.response.data?.message ||
         error.response.data?.error ||
         "Erro ao alterar status do agendamento";
+      throw new Error(msg);
+    }
+
+    if (error?.request) {
+      throw new Error("Sem resposta do servidor. Verifique a conexão.");
+    }
+
+    throw new Error(error?.message || "Falha de conexão com o servidor");
+  }
+};
+
+export const reagendarConsulta = async (idAgendamento, novoHorario, token) => {
+  try {
+    const response = await httpClient.patch(
+      `/agendamento/${idAgendamento}/data`,
+      { horario: novoHorario },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error?.response) {
+      const msg =
+        (typeof error.response.data === "string" && error.response.data) ||
+        error.response.data?.message ||
+        error.response.data?.error ||
+        "Erro ao reagendar consulta";
       throw new Error(msg);
     }
 

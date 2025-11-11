@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react"; // ✅ Adiciona useState
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import TituloIcone from "../components/tituloIcone";
 import { useNavigation } from "@react-navigation/native";
 import { alterarStatusAgendamento } from "../service/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import ModalReagendar from "../components/ModalReagendar"; // ✅ Importa o modal
 
 // ✅ Função EXATAMENTE IGUAL ao cardStatus.js - ORDEM CORRETA
 function getStatusColor(status) {
@@ -28,7 +29,7 @@ function getStatusColor(status) {
     // Consultas
     if (statusLower.includes("agendado") || statusLower.includes("agendada")) return "#315fd3ff"; // Azul
     if (statusLower.includes("concluído") || statusLower.includes("concluida")) return "#065F46"; // Verde
-    if (statusLower.includes("cancelado") || statusLower.includes("cancelada")) return "#DC2626"; // Vermelho
+    if (statusLower.includes("cancelada") || statusLower.includes("CANCELADA"))  return "#DC2626"; // Vermelho
     if (statusLower.includes("faltou")) return "#F59E0B"; // Laranja
 
     return "#065F46"; // Verde padrão
@@ -36,7 +37,10 @@ function getStatusColor(status) {
 
 export default function DetalheConsulta({ route }) {
   const { consulta } = route?.params || {};
-  const navigation = useNavigation(); // ✅ Adicione se não tiver
+  const navigation = useNavigation();
+  
+  // ✅ Estado para controlar o modal
+  const [modalVisible, setModalVisible] = useState(false);
 
   console.log("=== DetalheConsulta ===");
   console.log("Consulta recebida:", JSON.stringify(consulta, null, 2));
@@ -133,10 +137,14 @@ export default function DetalheConsulta({ route }) {
   };
 
   const handleReagendar = () => {
-    Alert.alert(
-      "Reagendar consulta",
-      "Aqui você pode implementar a lógica para reagendar a consulta (ex.: abrir tela de agenda)."
-    );
+    // ✅ Abre o modal de reagendamento
+    setModalVisible(true);
+  };
+
+  const handleReagendamentoSuccess = () => {
+    // ✅ Callback quando reagenda com sucesso
+    setModalVisible(false);
+    navigation.navigate("Historico", { refresh: true });
   };
 
   const handleCancelar = () => {
@@ -322,6 +330,14 @@ export default function DetalheConsulta({ route }) {
           )}
         </View>
       </ScrollView>
+
+      {/* ✅ Modal de Reagendamento */}
+      <ModalReagendar
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        consulta={consulta}
+        onSuccess={handleReagendamentoSuccess}
+      />
     </Fundo>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Alert, SafeAreaView } from "react-native";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
 import ListParcela from "../components/listParcela";
@@ -140,17 +140,18 @@ export default function ParcelamentoAberto() {
                             quantidadeParcela={parcela.numeroParcela}
                             valorParcela={formatarValor(parcela.valorParcela)}
                         />
-
                     ))}
                 </View>
 
-                {/* aviso final */}
-                <View style={styles.infoContainer}>
-                    <Text style={styles.infoText}>
-                        As parcelas serão descontadas automaticamente do seu salário
-                        conforme o cronograma estabelecido.
-                    </Text>
-                </View>
+                {/* ✅ Área de informações com SafeAreaView */}
+                <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom}>
+                    <View style={styles.infoContainer}>
+                        <Text style={styles.infoText}>
+                            As parcelas serão descontadas automaticamente do seu salário
+                            conforme o cronograma estabelecido.
+                        </Text>
+                    </View>
+                </SafeAreaView>
             </View>
         );
     };
@@ -199,14 +200,20 @@ const styles = StyleSheet.create({
     },
     parcelasContainer: {
         flex: 1,
+        marginBottom: 8, // ✅ Adiciona margem antes da área de info
+    },
+    // ✅ Novo estilo para SafeAreaView
+    safeAreaBottom: {
+        backgroundColor: 'transparent',
+        marginBottom: 16, // ✅ Margem inferior para evitar sobreposição
     },
     infoContainer: {
         backgroundColor: "#FEF3C7",
         padding: 12,
         borderRadius: 8,
-        marginTop: 16,
         borderLeftWidth: 4,
         borderLeftColor: "#F59E0B",
+        marginBottom: 8, // ✅ Espaçamento extra
     },
     infoText: {
         fontSize: 14,

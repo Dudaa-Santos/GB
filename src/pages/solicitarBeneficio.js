@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image,
   Platform,
+  SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
@@ -446,13 +447,22 @@ export default function SolicitarBeneficio() {
           </View>
         )}
 
-        <View style={styles.buttonContainer}>
-          <SubmitButton 
-            title={submitting ? "ENVIANDO..." : "SOLICITAR"} 
-            onPress={handleSolicitar}
-            disabled={submitting}
-          />
-        </View>
+        {/* ✅ Área de botão com SafeAreaView */}
+        <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom}>
+          <View style={styles.buttonContainer}>
+            <SubmitButton 
+              title={submitting ? "ENVIANDO..." : "SOLICITAR"} 
+              onPress={handleSolicitar}
+              disabled={submitting}
+            />
+            {submitting && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#047857" />
+                <Text style={styles.loadingText}>Processando solicitação...</Text>
+              </View>
+            )}
+          </View>
+        </SafeAreaView>
       </ScrollView>
     </Fundo>
   );
@@ -573,7 +583,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  safeAreaBottom: {
+    backgroundColor: 'transparent',
+    marginBottom: 16, // ✅ Adiciona margem inferior
+  },
   buttonContainer: {
     marginTop: 20,
+    gap: 8,
+    paddingBottom: 24, // ✅ Aumentado para 24
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 8,
   },
 });

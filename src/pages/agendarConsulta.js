@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Alert, ActivityIndicator, SafeAreaView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
@@ -237,7 +237,10 @@ export default function AgendarConsulta() {
         }
 
         console.log("🔍 Buscando disponibilidade:", { medicoSel, sel });
-        const resp = await disponibilidadeMedico(medicoSel, token, sel);
+        
+        // ❌ ESTAVA ERRADO: disponibilidadeMedico(medicoSel, token, sel)
+        // ✅ CORRETO: disponibilidadeMedico(medicoSel, sel, token)
+        const resp = await disponibilidadeMedico(medicoSel, sel, token);
         console.log("📥 Resposta da API:", resp);
 
         const horarios = resp?.data ?? [];
@@ -252,7 +255,7 @@ export default function AgendarConsulta() {
           console.log(`⏰ Horário: ${it.horario}, disponível: ${it.disponivel} -> ${disponivel}`);
 
           return {
-            iso: it.horario, // ISO UTC do backend
+            iso: it.horario,
             label: isoToLocalHHMM(it.horario),
             disponivel,
           };
@@ -509,19 +512,22 @@ export default function AgendarConsulta() {
           </View>
         )}
 
-        <View style={styles.submitContainer}>
-          <SubmitButton
-            title={submitting ? "Agendando..." : "Agendar Consulta"}
-            disabled={submitting || !medicoSel || !sel || !horarioSel}
-            onPress={handleSubmit}
-          />
-          {submitting && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#047857" />
-              <Text style={styles.loadingText}>Processando agendamento...</Text>
-            </View>
-          )}
-        </View>
+        {/* ✅ Área de botão com SafeAreaView */}
+        <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom}>
+          <View style={styles.submitContainer}>
+            <SubmitButton
+              title={submitting ? "Agendando..." : "Agendar Consulta"}
+              disabled={submitting || !medicoSel || !sel || !horarioSel}
+              onPress={handleSubmit}
+            />
+            {submitting && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#047857" />
+                <Text style={styles.loadingText}>Processando agendamento...</Text>
+              </View>
+            )}
+          </View>
+        </SafeAreaView>
       </View>
     </Fundo>
   );
@@ -582,7 +588,15 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   errorText: { color: "#B91C1C", fontSize: 14, fontWeight: "500" },
-  submitContainer: { marginTop: 16, gap: 8 },
+  safeAreaBottom: {
+    backgroundColor: 'transparent',
+    marginBottom: 16, // ✅ Adiciona margem inferior
+  },
+  submitContainer: { 
+    marginTop: 16, 
+    gap: 8,
+    paddingBottom: 24, // ✅ Aumentado de 8 para 24
+  },
   loadingContainer: {
     flexDirection: "row",
     alignItems: "center",

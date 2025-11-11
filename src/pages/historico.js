@@ -463,6 +463,14 @@ export default function Historico() {
             );
         }
 
+        // Ordenar consultas por data (mais recente primeiro)
+        const consultasOrdenadas = consultas.sort((a, b) => {
+            const dataA = new Date(a.horario);
+            const dataB = new Date(b.horario);
+            return dataB - dataA; // decrescente (mais recente primeiro)
+            // ou return dataA - dataB; // crescente (mais antiga primeiro)
+        });
+
         return (
             <View style={styles.listContainer}>
                 {/* Filtros */}
@@ -477,7 +485,7 @@ export default function Historico() {
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
                     >
-                        {consultas.map((consulta, index) => (
+                        {consultasOrdenadas.map((consulta, index) => (
                             <CardStatus
                                 key={consulta.idAgendamento || index}
                                 tipo="consulta"

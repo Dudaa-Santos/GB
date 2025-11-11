@@ -413,7 +413,8 @@ export default function Chat() {
         style={[
           styles.inputContainer,
           {
-            bottom: kbHeight > 0 ? kbHeight : insets.bottom,
+            bottom: kbHeight > 0 ? kbHeight : 0, // ✅ Removido insets.bottom quando teclado visível
+            paddingBottom: kbHeight > 0 ? SCREEN_HEIGHT * 0.02 : insets.bottom + SCREEN_HEIGHT * 0.02, // ✅ Adiciona padding do safe area quando teclado fechado
           },
         ]}
         onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
@@ -454,9 +455,8 @@ export default function Chat() {
           }
           hitSlop={10}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : awaitingUpload ? (
+          {/* ✅ Ícone fixo, sem loading */}
+          {awaitingUpload ? (
             <Icon name="paperclip" size={SCREEN_WIDTH * 0.06} color="#fff" />
           ) : (
             <Text style={styles.sendButtonText}>➤</Text>
@@ -553,14 +553,13 @@ const styles = StyleSheet.create({
 
   // INPUT / DOCUMENTO
   inputContainer: {
+    position: "absolute", // ✅ Adiciona position absolute
     left: 0,
     right: 0,
-    height: 40,
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: SCREEN_WIDTH * 0.05,
     paddingTop: SCREEN_HEIGHT * 0.015,
-    paddingBottom: SCREEN_HEIGHT * 0.02,
     gap: 8,
     backgroundColor: "#FFFEF6",
     borderTopWidth: 1,
