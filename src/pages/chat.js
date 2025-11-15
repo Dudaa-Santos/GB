@@ -12,6 +12,7 @@ import {
   FlatList,
   ActivityIndicator,
   Dimensions,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -37,6 +38,7 @@ export default function Chat() {
   const [inputHeight, setInputHeight] = useState(0);
   const [awaitingUpload, setAwaitingUpload] = useState(false);
   const listRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const show = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -44,8 +46,14 @@ export default function Chat() {
 
     const showSub = Keyboard.addListener(show, (e) => {
       setKbHeight(e.endCoordinates?.height ?? 0);
+      // Rola para o final quando o teclado abre
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     });
-    const hideSub = Keyboard.addListener(hide, () => setKbHeight(0));
+    const hideSub = Keyboard.addListener(hide, () => {
+      setKbHeight(0);
+    });
 
     return () => {
       showSub.remove();
@@ -347,7 +355,11 @@ export default function Chat() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
       <StatusBar barStyle="light-content" backgroundColor="#065F46" />
       <View
         style={{
@@ -413,14 +425,14 @@ export default function Chat() {
         style={[
           styles.inputContainer,
           {
-            bottom: kbHeight > 0 ? kbHeight : 0, // ✅ Removido insets.bottom quando teclado visível
-            paddingBottom: kbHeight > 0 ? SCREEN_HEIGHT * 0.02 : insets.bottom + SCREEN_HEIGHT * 0.02, // ✅ Adiciona padding do safe area quando teclado fechado
+            paddingBottom: insets.bottom + SCREEN_HEIGHT * 0.02,
           },
         ]}
         onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
       >
         {/* Campo de texto sempre visível, mas bloqueado quando awaitingUpload */}
         <TextInput
+          ref={inputRef}
           style={[
             styles.input,
             (primeiroUso || awaitingUpload) && styles.inputDisabled,
@@ -435,6 +447,11 @@ export default function Chat() {
           placeholderTextColor="#9CA3AF"
           value={mensagem}
           onChangeText={setMensagem}
+          onFocus={() => {
+            setTimeout(() => {
+              listRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          }}
           multiline
           maxLength={1000}
           editable={!isLoading && !primeiroUso && !awaitingUpload}
@@ -463,7 +480,7 @@ export default function Chat() {
           )}
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -553,9 +570,6 @@ const styles = StyleSheet.create({
 
   // INPUT / DOCUMENTO
   inputContainer: {
-    position: "absolute", // ✅ Adiciona position absolute
-    left: 0,
-    right: 0,
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: SCREEN_WIDTH * 0.05,

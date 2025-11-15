@@ -127,6 +127,7 @@ export default function AgendarConsulta() {
   const [sel, setSel] = useState(null); // YYYY-MM-DD (string)
   const [slots, setSlots] = useState([]); // { iso, label, disponivel }
   const [horarioSel, setHorarioSel] = useState(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -227,32 +228,40 @@ export default function AgendarConsulta() {
     (async () => {
       if (!medicoSel || !sel) {
         setSlots([]);
+        setLoadingSlots(false);
         return;
       }
+      
+      setLoadingSlots(true);
+      setHorarioSel(null); // Limpa seleção ao buscar novos horários
+      
       try {
         const token = await AsyncStorage.getItem("token");
         if (!token) {
           setError("Sessão inválida. Faça login novamente.");
+          setLoadingSlots(false);
           return;
         }
 
         console.log("🔍 Buscando disponibilidade:", { medicoSel, sel });
         
-        // ❌ ESTAVA ERRADO: disponibilidadeMedico(medicoSel, token, sel)
-        // ✅ CORRETO: disponibilidadeMedico(medicoSel, sel, token)
         const resp = await disponibilidadeMedico(medicoSel, sel, token);
         console.log("📥 Resposta da API:", resp);
 
         const horarios = resp?.data ?? [];
+        const agora = new Date();
 
         const lista = horarios.map((it) => {
+          const dataHorario = new Date(it.horario);
+          const horarioPassou = dataHorario < agora;
+          
           const disponivel =
-            it.disponivel === true ||
+            (it.disponivel === true ||
             it.disponivel === 1 ||
             it.disponivel === "1" ||
-            it.disponivel === "true";
+            it.disponivel === "true") && !horarioPassou; // ✅ Bloqueia horários passados
 
-          console.log(`⏰ Horário: ${it.horario}, disponível: ${it.disponivel} -> ${disponivel}`);
+          console.log(`⏰ Horário: ${it.horario}, disponível API: ${it.disponivel}, passou: ${horarioPassou}, disponível final: ${disponivel}`);
 
           return {
             iso: it.horario,
@@ -267,6 +276,8 @@ export default function AgendarConsulta() {
         console.error("❌ Erro ao buscar disponibilidade:", e);
         setSlots([]);
         setError(e?.message || "Erro ao buscar disponibilidade do médico.");
+      } finally {
+        setLoadingSlots(false);
       }
     })();
   }, [medicoSel, sel]);
@@ -465,17 +476,17 @@ export default function AgendarConsulta() {
           <View style={styles.horariosSection}>
             <Text style={styles.label}>Selecione o horário</Text>
 
-            {slots.length === 0 ? (
+            {loadingSlots ? (
+              <View style={styles.loadingHorariosContainer}>
+                <ActivityIndicator size="large" color="#047857" />
+                <Text style={styles.loadingHorariosText}>Carregando horários disponíveis...</Text>
+              </View>
+            ) : slots.length === 0 ? (
               <Text style={styles.noSlotsText}>
                 {sel ? "Nenhum horário disponível para esta data" : "Selecione uma data primeiro"}
               </Text>
             ) : (
               <>
-                <View style={styles.horariosInfo}>
-                  <Text style={styles.horariosInfoText}>
-                    {slots.filter((s) => s.disponivel).length} horários disponíveis de {slots.length}
-                  </Text>
-                </View>
 
                 <View style={styles.horariosGrid}>
                   {slots.map((slot) => (
@@ -578,6 +589,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 20,
     fontStyle: "italic",
+  },
+  loadingHorariosContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+    gap: 12,
+  },
+  loadingHorariosText: {
+    fontSize: 14,
+    color: "#047857",
+    fontWeight: "500",
   },
   errorContainer: {
     backgroundColor: "#FEF2F2",

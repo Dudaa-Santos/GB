@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Input from '../components/input';
 import { login } from '../service/authService';
@@ -20,6 +22,7 @@ export default function LoginScreen({ navigation }) {
   const [errors, setErrors] = useState({ matricula: false, senha: false });
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
+  const scrollViewRef = useRef(null);
 
   // Validação simples
   const validate = () => {
@@ -66,68 +69,87 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
-          <Image
-            source={require('../images/logo_gb.png')}
-            style={styles.logo}
-          />
-          <View style={styles.textBlock}>
-            <Text style={styles.ola}>Olá!</Text>
-            <Text style={styles.sub}>Bem-vindo(a) à Gestão de Benefícios</Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.title}>Login</Text>
-
-          <Input
-            label="Código"
-            placeholder="Digite seu Código"
-            value={matricula}
-            onChangeText={text =>
-              handleInputChange(setmatricula, 'matricula', text)
-            }
-            errorText={errors.matricula ? ' ' : undefined} // ativa o estilo vermelho sem mostrar texto
-          />
-
-          <Input
-            label="Senha"
-            placeholder="Digite sua senha"
-            secureTextEntry
-            showPasswordToggle
-            value={senha}
-            onChangeText={text =>
-              handleInputChange(setSenha, 'senha', text)
-            }
-            errorText={errors.senha ? ' ' : undefined}
-          />
-
-          {loginError ? (
-            <Text style={styles.errorText}>{loginError}</Text>
-          ) : null}
-
-          <Pressable
-            onPress={handleSubmit}
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]}
+    <View style={{ flex: 1 }}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           >
-            <Text style={styles.buttonText}>
-              {loading ? 'Entrando...' : 'Entrar'}
-            </Text>
-          </Pressable>
+            <ScrollView
+              ref={scrollViewRef}
+              contentContainerStyle={styles.scroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.header}>
+                <Image
+                  source={require('../images/logo_gb.png')}
+                  style={styles.logo}
+                />
+                <View style={styles.textBlock}>
+                  <Text style={styles.ola}>Olá!</Text>
+                  <Text style={styles.sub}>Bem-vindo(a) à Gestão de Benefícios</Text>
+                </View>
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.title}>Login</Text>
+
+                <Input
+                  label="Código"
+                  placeholder="Digite seu Código"
+                  value={matricula}
+                  onChangeText={text =>
+                    handleInputChange(setmatricula, 'matricula', text)
+                  }
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 100);
+                  }}
+                  errorText={errors.matricula ? ' ' : undefined}
+                />
+
+                <Input
+                  label="Senha"
+                  placeholder="Digite sua senha"
+                  secureTextEntry
+                  showPasswordToggle
+                  value={senha}
+                  onChangeText={text =>
+                    handleInputChange(setSenha, 'senha', text)
+                  }
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 100);
+                  }}
+                  errorText={errors.senha ? ' ' : undefined}
+                />
+
+                {loginError ? (
+                  <Text style={styles.errorText}>{loginError}</Text>
+                ) : null}
+
+                <Pressable
+                  onPress={handleSubmit}
+                  style={({ pressed }) => [
+                    styles.button,
+                    pressed && styles.buttonPressed,
+                  ]}
+                >
+                  <Text style={styles.buttonText}>
+                    {loading ? 'Entrando...' : 'Entrar'}
+                  </Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </View>
   );
 }
 
