@@ -533,6 +533,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
+    marginTop: 20,
   },
   headerCard: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   beneficioTitulo: { fontSize: 18, fontWeight: "bold", color: "#1F2937", flex: 1 },

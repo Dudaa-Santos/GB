@@ -118,6 +118,31 @@ export default function Home({ navigation }) {
   const [colaborador, setColaborador] = useState(null);
   const [agendamentos, setAgendamentos] = useState([]);
   const [solicitacoes, setSolicitacoes] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ✅ Verifica autenticação antes de tudo
+  const checkAuth = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const id = await AsyncStorage.getItem("id");
+      
+      if (!token || !id) {
+        console.log("❌ Usuário não autenticado, redirecionando para Login");
+        navigation.replace("Login");
+        return false;
+      }
+      
+      setIsAuthenticated(true);
+      return true;
+    } catch (error) {
+      console.error("Erro ao verificar autenticação:", error);
+      navigation.replace("Login");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchUser = async () => {
     try {
@@ -129,6 +154,11 @@ export default function Home({ navigation }) {
       }
     } catch (error) {
       console.error("Erro ao buscar usuário:", error);
+      // ✅ Se der erro 401/403, volta pro login
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        await AsyncStorage.multiRemove(["token", "id", "userEmail"]);
+        navigation.replace("Login");
+      }
     }
   };
 
@@ -143,6 +173,10 @@ export default function Home({ navigation }) {
       }
     } catch (error) {
       console.error("Erro ao buscar agendamentos:", error);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        await AsyncStorage.multiRemove(["token", "id", "userEmail"]);
+        navigation.replace("Login");
+      }
     }
   };
 
@@ -156,20 +190,34 @@ export default function Home({ navigation }) {
       }
     } catch (error) {
       console.error("Erro ao buscar solicitações:", error);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        await AsyncStorage.multiRemove(["token", "id", "userEmail"]);
+        navigation.replace("Login");
+      }
     }
   };
 
+  // ✅ Primeiro verifica autenticação, depois carrega dados
   useEffect(() => {
-    fetchUser();
-    fetchAgendamentos();
-    fetchSolicitacoes();
+    const initialize = async () => {
+      const authenticated = await checkAuth();
+      if (authenticated) {
+        fetchUser();
+        fetchAgendamentos();
+        fetchSolicitacoes();
+      }
+    };
+    
+    initialize();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchAgendamentos();
-      fetchSolicitacoes();
-    }, [])
+      if (isAuthenticated) {
+        fetchAgendamentos();
+        fetchSolicitacoes();
+      }
+    }, [isAuthenticated])
   );
 
   const handleLogout = async () => {
@@ -236,6 +284,20 @@ export default function Home({ navigation }) {
     console.log("🔵 Datas com agendamento (ISO):", datas);
     return datas;
   }, [agendamentos]);
+
+  // ✅ Exibe loading enquanto verifica autenticação
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Carregando...</Text>
+      </View>
+    );
+  }
+
+  // ✅ Não renderiza nada se não estiver autenticado (já redirecionou)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <Fundo isHome={true} scrollable={true} onLogout={handleLogout}>

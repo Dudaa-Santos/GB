@@ -142,10 +142,11 @@ export default function AssinaturasPendentes() {
     }
 
     if (!pendentes.length) {
+      // ✅ empty state alinhado ao ParcelamentoAberto
       return (
-        <View style={styles.vazioBox}>
-          <Text style={styles.vazioTitulo}>Nenhuma assinatura pendente</Text>
-          <Text style={styles.vazioSub}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Nenhuma assinatura pendente</Text>
+          <Text style={styles.emptySubText}>
             Quando houver documentos aguardando sua assinatura, eles aparecerão aqui.
           </Text>
         </View>
@@ -251,24 +252,25 @@ const styles = StyleSheet.create({
   errorContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
   errorText: { fontSize: 16, color: "#DC2626", textAlign: "center", marginBottom: 10 },
   retryText: { fontSize: 16, color: "#065F46", textDecorationLine: "underline" },
-  vazioBox: {
-    backgroundColor: colors.bgCard,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.green,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    width: "100%",
-    alignSelf: "center",
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 40,
   },
-  vazioTitulo: {
-    fontSize: 16,
+  emptyText: {
+    fontSize: 18,
     fontWeight: "600",
     color: "#1F2937",
-    marginBottom: 4,
+    marginBottom: 8,
     textAlign: "center",
   },
-  vazioSub: { fontSize: 14, color: "#6B7280", fontWeight: "400", textAlign: "center" },
+  emptySubText: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "400",
+    textAlign: "center",
+  },
   cardsContainer: { marginTop: 24, paddingBottom: 12 },
   card: {
     flexDirection: "row",

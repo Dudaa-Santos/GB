@@ -29,7 +29,7 @@ function getStatusColor(status) {
     // Consultas
     if (statusLower.includes("agendado") || statusLower.includes("agendada")) return "#315fd3ff"; // Azul
     if (statusLower.includes("concluído") || statusLower.includes("concluida")) return "#065F46"; // Verde
-    if (statusLower.includes("cancelada") || statusLower.includes("CANCELADA"))  return "#DC2626"; // Vermelho
+    if (statusLower.includes("cancelada") || statusLower.includes("CANCELADA") || statusLower.includes("cancelado") || statusLower.includes("CANCELADO")) return "#DC2626"; // Vermelho
     if (statusLower.includes("faltou")) return "#F59E0B"; // Laranja
 
     return "#065F46"; // Verde padrão
@@ -136,8 +136,32 @@ export default function DetalheConsulta({ route }) {
     return s.includes("agend");
   };
 
+  // ✅ Nova função para verificar se a consulta já passou
+  const isConsultaPassada = () => {
+    if (!consulta?.horario) return false;
+    
+    try {
+      const dataConsulta = new Date(consulta.horario);
+      const dataAtual = new Date();
+      
+      // Retorna true se a data da consulta for anterior à data atual
+      return dataConsulta < dataAtual;
+    } catch (error) {
+      console.error("Erro ao verificar data:", error);
+      return false;
+    }
+  };
+
   const handleReagendar = () => {
-    // ✅ Abre o modal de reagendamento
+    // ✅ Verifica se a consulta já passou
+    if (isConsultaPassada()) {
+      Alert.alert(
+        "Atenção",
+        "Não é possível reagendar uma consulta que já passou."
+      );
+      return;
+    }
+    
     setModalVisible(true);
   };
 
@@ -314,15 +338,25 @@ export default function DetalheConsulta({ route }) {
           {isAgendado() && (
             <View style={styles.actionsContainer}>
               <TouchableOpacity
-                style={styles.reagendarButton}
+                style={[
+                  styles.reagendarButton,
+                  isConsultaPassada() && styles.buttonDisabled // ✅ Estilo desabilitado
+                ]}
                 onPress={handleReagendar}
+                disabled={isConsultaPassada()} // ✅ Desabilita o botão
               >
-                <Text style={styles.reagendarButtonText}>Reagendar</Text>
+                <Text style={styles.reagendarButtonText}>
+                  {isConsultaPassada() ? "Consulta passada" : "Reagendar"}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.cancelarButton}
+                style={[
+                  styles.cancelarButton,
+                  isConsultaPassada() && styles.buttonDisabled // ✅ Estilo desabilitado
+                ]}
                 onPress={handleCancelar}
+                disabled={isConsultaPassada()} // ✅ Desabilita o botão
               >
                 <Text style={styles.cancelarButtonText}>Cancelar consulta</Text>
               </TouchableOpacity>
@@ -351,6 +385,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 40,
+    paddingTop: 20,
   },
   errorText: {
     fontSize: 16,
@@ -368,6 +403,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
+    marginTop: 20,
   },
   headerCard: {
     flexDirection: "row",
@@ -510,5 +546,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+
+  // ✅ Adicionar estilo para botão desabilitado
+  buttonDisabled: {
+    backgroundColor: "#9CA3AF",
+    opacity: 0.6,
   },
 });

@@ -108,6 +108,21 @@ export default function Chat() {
       };
       setConversa((prev) => [...prev, msgDocumento]);
 
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+
+      // ✅ Adiciona indicador de "digitando..."
+      const typingId = `typing-${Date.now()}`;
+      setConversa((prev) => [
+        ...prev,
+        { id: typingId, typing: true, fromUser: false, time: "" },
+      ]);
+
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+
       setIsLoading(true);
 
       const token = await AsyncStorage.getItem("token");
@@ -150,15 +165,18 @@ export default function Chat() {
 
       console.log("Texto resposta do bot:", textoRespostaDoBot);
 
-      if (textoRespostaDoBot) {
-        const respostaBot = {
-          id: (Date.now() + 1).toString(),
-          text: textoRespostaDoBot,
-          fromUser: false,
-          time: getHoraAgora(),
-        };
-        setConversa((prev) => [...prev, respostaBot]);
-      }
+      // ✅ Remove o "digitando..." e adiciona a resposta
+      const respostaBot = {
+        id: (Date.now() + 1).toString(),
+        text: textoRespostaDoBot,
+        fromUser: false,
+        time: getHoraAgora(),
+      };
+      
+      setConversa((prev) => {
+        const semTyping = prev.filter((m) => !m.typing);
+        return [...semTyping, respostaBot];
+      });
 
       setTimeout(() => {
         listRef.current?.scrollToEnd({ animated: true });
@@ -203,8 +221,18 @@ export default function Chat() {
         fromUser: false,
         time: getHoraAgora(),
       };
-      setConversa((prev) => [...prev, respostaErro]);
+      
+      // ✅ Remove o "digitando..." e adiciona a mensagem de erro
+      setConversa((prev) => {
+        const semTyping = prev.filter((m) => !m.typing);
+        return [...semTyping, respostaErro];
+      });
+      
       setAwaitingUpload(false);
+
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 150);
 
       console.error("=== FIM DO LOG DE ERRO ===");
     } finally {
