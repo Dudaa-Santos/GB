@@ -113,12 +113,6 @@ export const documentoUrl = async (nomeArquivoUnico, token) => {
 
 export const disponibilidadeMedico = async (idMedico, dia, token) => {
   try {
-    console.log("📤 disponibilidadeMedico chamado com:", {
-      idMedico,
-      dia,
-      tokenPresente: !!token,
-      tokenLength: token?.length
-    });
 
     const response = await httpClient.get(
       `/medico/${idMedico}/disponibilidade?dia=${dia}`,
@@ -129,7 +123,6 @@ export const disponibilidadeMedico = async (idMedico, dia, token) => {
       }
     );
 
-    console.log("✅ Disponibilidade recebida:", response.data);
     return response.data;
   } catch (error) {
     console.error("❌ Erro em disponibilidadeMedico:", error.response?.data || error.message);

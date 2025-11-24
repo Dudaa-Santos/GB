@@ -62,6 +62,44 @@ export default function DetalheBeneficio({ route }) {
     return status;
   };
 
+  // ✅ FUNÇÃO PARA SEPARAR DOCUMENTOS POR TIPO
+  const separarDocumentosPorTipo = () => {
+    const grupos = {};
+    
+    documentos.forEach((doc) => {
+      const tipo = doc.tipoDocumento?.toUpperCase() || "OUTROS";
+      if (!grupos[tipo]) {
+        grupos[tipo] = [];
+      }
+      grupos[tipo].push(doc);
+    });
+
+    return grupos;
+  };
+
+  // ✅ FUNÇÃO PARA FORMATAR NOME DO TIPO COM CAPITALIZE
+  const formatarNomeTipo = (tipo) => {
+    const nomes = {
+      RECIBO: "Recibos",
+      COMPROVANTE: "Comprovantes",
+      AUTORIZACAO: "Autorizações",
+      COMPROVANTE_SOLICITACAO: "Comprovantes de Solicitação",
+      OUTROS: "Outros Documentos",
+    };
+    
+    // Se tiver no mapeamento, retorna o nome formatado
+    if (nomes[tipo]) {
+      return nomes[tipo];
+    }
+    
+    // Caso contrário, formata o tipo automaticamente
+    // Remove underscores, coloca primeira letra maiúscula
+    return tipo
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   useEffect(() => {
     const fetchDocumentos = async () => {
       setLoadingDocumentos(true);
@@ -86,7 +124,6 @@ export default function DetalheBeneficio({ route }) {
 
         setDocumentos(documentosArray);
       } catch (error) {
-        console.error("Erro ao buscar documentos:", error);
         setDocumentos([]);
       } finally {
         setLoadingDocumentos(false);
@@ -115,14 +152,7 @@ export default function DetalheBeneficio({ route }) {
         const nomeArquivoParaBusca = documento?.nomeArquivoUnico;
         const key = documento.id || documento.nomeArquivoUnico || documento.nomeArquivoOriginal;
 
-        console.log('🔍 Processando documento:', {
-          key,
-          nomeArquivoParaBusca,
-          documento: documento
-        });
-
         if (!nomeArquivoParaBusca) {
-          console.log('❌ Nome arquivo para busca vazio');
           urls[key] = "";
           loadingMap[key] = false;
           setLoadingUrlMap({ ...loadingMap });
@@ -131,17 +161,14 @@ export default function DetalheBeneficio({ route }) {
 
         try {
           const urlData = await documentoUrl(nomeArquivoParaBusca, token);
-          console.log('📡 Resposta documentoUrl:', urlData);
           
           const raw = urlData?.data || "";
           const full = raw.startsWith("http")
             ? raw
             : `${process.env.EXPO_PUBLIC_API_URL || ""}${raw}`;
 
-          console.log('🌐 URL final gerada:', full);
           urls[key] = full;
         } catch (error) {
-          console.error(`❌ Erro ao buscar URL do documento ${documento.nomeArquivoOriginal || key}:`, error);
           urls[key] = "";
         } finally {
           loadingMap[key] = false;
@@ -149,7 +176,6 @@ export default function DetalheBeneficio({ route }) {
         }
       }
 
-      console.log('📋 URLs finais:', urls);
       setDocumentosUrls(urls);
     };
 
@@ -173,7 +199,6 @@ export default function DetalheBeneficio({ route }) {
       if (canOpen) await Linking.openURL(url);
       else Alert.alert("Erro", "Não foi possível abrir este tipo de arquivo");
     } catch (error) {
-      console.error("Erro ao visualizar documento:", error);
       Alert.alert("Erro", "Não foi possível abrir o documento");
     }
   };
@@ -214,16 +239,14 @@ export default function DetalheBeneficio({ route }) {
             dialogTitle: destFile.name || filename,
           });
         } catch (shareError) {
-          console.warn("Compartilhamento falhou:", shareError);
+          // Silencioso
         }
       }
-      console.log("Salvo como:", destFile.uri);
     } catch (error) {
-      console.error("Download silencioso falhou:", error);
       try {
         await Linking.openURL(url);
       } catch (linkError) {
-        console.error("Fallback também falhou:", linkError);
+        // Silencioso
       }
     }
   };
@@ -313,6 +336,9 @@ export default function DetalheBeneficio({ route }) {
     );
   }
 
+  const documentosPorTipo = separarDocumentosPorTipo();
+  const tiposDocumentos = Object.keys(documentosPorTipo).sort();
+
   return (
     <Fundo>
       <ScrollView>
@@ -372,7 +398,7 @@ export default function DetalheBeneficio({ route }) {
             </View>
           )}
 
-          {/* Documentos */}
+          {/* Documentos Separados por Tipo */}
           <View style={styles.documentosSection}>
             <Text style={styles.sectionTitle}>Documentos</Text>
 
@@ -389,64 +415,85 @@ export default function DetalheBeneficio({ route }) {
                       {documentos.length} documento(s) encontrado(s)
                     </Text>
 
-                    {documentos.map((documento, index) => {
-                      const key = documento.id || documento.nomeArquivoUnico || index;
-                      const urlPronta = !!getDocumentoUrl(documento);
-                      const miniLoading = !!loadingUrlMap[key];
+                    {/* ✅ RENDERIZAR POR TIPO COM COR DO STATUS */}
+                    {tiposDocumentos.map((tipo) => {
+                      const docsDoTipo = documentosPorTipo[tipo];
 
                       return (
-                        <View key={key} style={styles.docRow}>
-                          <View style={styles.tile}>
-                            <View style={styles.tileInner} />
-                            <Text style={styles.tileText}>
-                              {getIconeExtensaoLabel(getExtensaoArquivo(documento))}
+                        <View key={tipo} style={styles.tipoDocumentoSection}>
+                          {/* Header do Tipo - Usando cor do status */}
+                          <View style={[styles.tipoHeaderCard, { borderBottomColor: statusColor }]}>
+                            <Text style={styles.tipoHeaderText}>
+                              {formatarNomeTipo(tipo)}
                             </Text>
+                            <View style={[styles.tipoCountBadge, { backgroundColor: statusColor }]}>
+                              <Text style={styles.tipoCountText}>{docsDoTipo.length}</Text>
+                            </View>
                           </View>
 
-                          <View style={styles.docNameWrap}>
-                            <Text numberOfLines={1} style={styles.docName}>
-                              {getNomeArquivo(documento)}
-                            </Text>
-                          </View>
+                          {/* Documentos do Tipo */}
+                          {docsDoTipo.map((documento, index) => {
+                            const key = documento.id || documento.nomeArquivoUnico || `${tipo}-${index}`;
+                            const urlPronta = !!getDocumentoUrl(documento);
+                            const miniLoading = !!loadingUrlMap[key];
 
-                          <View style={styles.actions}>
-                            {miniLoading ? (
-                              <ActivityIndicator size="small" color="#111827" />
-                            ) : (
-                              <>
-                                <Pressable
-                                  onPress={() => handleVisualizar(documento)}
-                                  disabled={!urlPronta}
-                                  style={({ pressed }) => [
-                                    styles.iconBtn,
-                                    !urlPronta && styles.iconBtnDisabled,
-                                    pressed && styles.iconBtnPressed,
-                                  ]}
-                                >
-                                  <View style={styles.iconOnly}>
-                                    <View style={styles.eyeOuter} />
-                                    <View style={styles.eyePupil} />
-                                  </View>
-                                </Pressable>
+                            return (
+                              <View key={key} style={styles.docRow}>
+                                {/* ✅ Tile com cor do status */}
+                                <View style={[styles.tile, { backgroundColor: statusColor }]}>
+                                  <View style={[styles.tileInner, { backgroundColor: statusColor, opacity: 0.6 }]} />
+                                  <Text style={styles.tileText}>
+                                    {getIconeExtensaoLabel(getExtensaoArquivo(documento))}
+                                  </Text>
+                                </View>
 
-                                <Pressable
-                                  onPress={() => handleBaixarNative(documento)}
-                                  disabled={!urlPronta}
-                                  style={({ pressed }) => [
-                                    styles.iconBtn,
-                                    !urlPronta && styles.iconBtnDisabled,
-                                    pressed && styles.iconBtnPressed,
-                                  ]}
-                                >
-                                  <View style={styles.downloadWrap}>
-                                    <View style={styles.downloadArrowHead} />
-                                    <View style={styles.downloadArrowStem} />
-                                    <View style={styles.downloadUnderline} />
-                                  </View>
-                                </Pressable>
-                              </>
-                            )}
-                          </View>
+                                <View style={styles.docNameWrap}>
+                                  <Text numberOfLines={1} style={styles.docName}>
+                                    {getNomeArquivo(documento)}
+                                  </Text>
+                                </View>
+
+                                <View style={styles.actions}>
+                                  {miniLoading ? (
+                                    <ActivityIndicator size="small" color="#111827" />
+                                  ) : (
+                                    <>
+                                      <Pressable
+                                        onPress={() => handleVisualizar(documento)}
+                                        disabled={!urlPronta}
+                                        style={({ pressed }) => [
+                                          styles.iconBtn,
+                                          !urlPronta && styles.iconBtnDisabled,
+                                          pressed && styles.iconBtnPressed,
+                                        ]}
+                                      >
+                                        <View style={styles.iconOnly}>
+                                          <View style={styles.eyeOuter} />
+                                          <View style={styles.eyePupil} />
+                                        </View>
+                                      </Pressable>
+
+                                      <Pressable
+                                        onPress={() => handleBaixarNative(documento)}
+                                        disabled={!urlPronta}
+                                        style={({ pressed }) => [
+                                          styles.iconBtn,
+                                          !urlPronta && styles.iconBtnDisabled,
+                                          pressed && styles.iconBtnPressed,
+                                        ]}
+                                      >
+                                        <View style={styles.downloadWrap}>
+                                          <View style={styles.downloadArrowHead} />
+                                          <View style={styles.downloadArrowStem} />
+                                          <View style={styles.downloadUnderline} />
+                                        </View>
+                                      </Pressable>
+                                    </>
+                                  )}
+                                </View>
+                              </View>
+                            );
+                          })}
                         </View>
                       );
                     })}
@@ -579,26 +626,58 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   loadingText: { marginTop: 12, fontSize: 14, color: "#6B7280", textAlign: "center" },
-  documentosStatus: { fontSize: 15, color: "#1F2937", fontWeight: "600", marginBottom: 12 },
+  documentosStatus: { fontSize: 15, color: "#1F2937", fontWeight: "600", marginBottom: 16 },
+  
+  // ✅ TÍTULO SIMPLES - NÃO É CARD
+  tipoDocumentoSection: {
+    marginBottom: 20,
+  },
+  tipoHeaderCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+  },
+  tipoHeaderText: {
+    color: "#1F2937",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  tipoCountBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tipoCountText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  
+  // ✅ CARDS DE DOCUMENTOS - COR BRANCA PADRÃO
   docRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    backgroundColor: "#F8F7F7", // ✅ COR PADRÃO DOS CARDS
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   tile: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: "#41AE8C",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -609,8 +688,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 6,
-    backgroundColor: "#1F6F58",
-    opacity: 0.9,
   },
   tileText: {
     color: "#FFFFFF",

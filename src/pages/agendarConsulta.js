@@ -242,11 +242,8 @@ export default function AgendarConsulta() {
           setLoadingSlots(false);
           return;
         }
-
-        console.log("🔍 Buscando disponibilidade:", { medicoSel, sel });
         
         const resp = await disponibilidadeMedico(medicoSel, sel, token);
-        console.log("📥 Resposta da API:", resp);
 
         const horarios = resp?.data ?? [];
         const agora = new Date();
@@ -261,8 +258,6 @@ export default function AgendarConsulta() {
             it.disponivel === "1" ||
             it.disponivel === "true") && !horarioPassou; // ✅ Bloqueia horários passados
 
-          console.log(`⏰ Horário: ${it.horario}, disponível API: ${it.disponivel}, passou: ${horarioPassou}, disponível final: ${disponivel}`);
-
           return {
             iso: it.horario,
             label: isoToLocalHHMM(it.horario),
@@ -270,7 +265,6 @@ export default function AgendarConsulta() {
           };
         });
 
-        console.log("📅 Slots processados:", lista);
         setSlots(lista);
       } catch (e) {
         console.error("❌ Erro ao buscar disponibilidade:", e);
@@ -287,7 +281,6 @@ export default function AgendarConsulta() {
     if (horarioSel) {
       const slotAtual = slots.find((s) => s.iso === horarioSel);
       if (!slotAtual || !slotAtual.disponivel) {
-        console.log("⚠️ Removendo seleção - slot indisponível");
         setHorarioSel(null);
       }
     }
@@ -311,7 +304,6 @@ export default function AgendarConsulta() {
         : {}),
     };
 
-    console.log("📦 Payload final pronto para envio:", payload);
     return payload;
   }
 
@@ -362,13 +354,8 @@ export default function AgendarConsulta() {
         return;
       }
 
-      console.log("📤 Payload completo para agendamento:");
-      console.log(JSON.stringify(payload, null, 2));
-      console.log("🚀 Chamando agendarConsulta...");
 
       const resp = await agendarConsulta(payload, token);
-
-      console.log("✅ Consulta agendada com sucesso:", resp);
       Alert.alert(
         "Sucesso", 
         "Consulta agendada com sucesso!",
@@ -499,7 +486,6 @@ export default function AgendarConsulta() {
                         if (slot.disponivel) {
                           setHorarioSel(horarioSel === slot.iso ? null : slot.iso);
                         } else {
-                          console.log("⚠️ Tentativa de selecionar horário indisponível");
                         }
                       }}
                       style={styles.horarioButton}

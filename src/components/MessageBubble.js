@@ -14,6 +14,28 @@ export default function MessageBubble({ text, fromUser, time, typing }) {
     );
   }
 
+  // ✅ Função para processar texto com **negrito**
+  const renderTextWithBold = (text) => {
+    if (!text) return null;
+
+    // Divide o texto por ** (negrito)
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+
+    return parts.map((part, index) => {
+      // Se começar e terminar com **, remove os ** e aplica negrito
+      if (part.startsWith("**") && part.endsWith("**")) {
+        const boldText = part.slice(2, -2); // Remove os ** do início e fim
+        return (
+          <Text key={index} style={styles.boldText}>
+            {boldText}
+          </Text>
+        );
+      }
+      // Caso contrário, renderiza texto normal
+      return <Text key={index}>{part}</Text>;
+    });
+  };
+
   // mensagem normal
   return (
     <View
@@ -31,7 +53,7 @@ export default function MessageBubble({ text, fromUser, time, typing }) {
         <Text
           style={[styles.text, fromUser ? styles.textUser : styles.textBot]}
         >
-          {text}
+          {renderTextWithBold(text)}
         </Text>
 
         <Text
@@ -138,6 +160,11 @@ const styles = StyleSheet.create({
   },
   textBot: {
     color: "#1F2937",
+  },
+
+  // ✅ Estilo para texto em negrito
+  boldText: {
+    fontWeight: "bold",
   },
 
   time: {

@@ -9,24 +9,15 @@ const httpClient = axios.create({
 // Interceptor para adicionar token automaticamente em TODAS as requisições
 httpClient.interceptors.request.use(
   async (config) => {
-    console.log("=== INTERCEPTOR REQUEST ===");
-    console.log("URL:", config.url);
-    console.log("Method:", config.method);
-    console.log("Headers antes:", JSON.stringify(config.headers, null, 2));
 
     // Tenta pegar o token do AsyncStorage
     const token = await AsyncStorage.getItem("token");
 
-    console.log("Token do AsyncStorage:", token ? `${token.substring(0, 20)}...` : "null");
-
     // Se tem token e não tem Authorization no header, adiciona
     if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("Token adicionado automaticamente");
     }
 
-    console.log("Headers depois:", JSON.stringify(config.headers, null, 2));
-    console.log("=== FIM INTERCEPTOR REQUEST ===");
 
     return config;
   },
@@ -39,9 +30,7 @@ httpClient.interceptors.request.use(
 // Interceptor para tratar erros de resposta
 httpClient.interceptors.response.use(
   (response) => {
-    console.log("=== INTERCEPTOR RESPONSE (SUCESSO) ===");
-    console.log("Status:", response.status);
-    console.log("URL:", response.config.url);
+
     return response;
   },
   async (error) => {
@@ -53,9 +42,7 @@ httpClient.interceptors.response.use(
     // Se retornar 401 (não autorizado), pode fazer logout automático
     if (error.response?.status === 401) {
       console.error("Token inválido ou expirado - considerando logout");
-      // await AsyncStorage.removeItem('token');
-      // await AsyncStorage.removeItem('id');
-      // navigation.replace('Login'); // você precisa implementar isso
+
     }
 
     return Promise.reject(error);

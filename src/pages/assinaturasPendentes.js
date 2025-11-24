@@ -9,14 +9,20 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { WebView } from "react-native-webview";
 import Fundo from "../components/fundo";
 import TituloIcone from "../components/tituloIcone";
 import {
   buscarSolicitacoesporId,
   assinarDocumento,
+  buscarDocumentoporId,
+  documentoUrl as obterDocumentoUrl,
 } from "../service/authService";
+
+const { width, height } = Dimensions.get("window");
 
 export default function AssinaturasPendentes() {
   const [pendentes, setPendentes] = useState([]);
@@ -25,6 +31,8 @@ export default function AssinaturasPendentes() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selecionado, setSelecionado] = useState(null);
   const [assinando, setAssinando] = useState(false);
+  const [urlDocumento, setUrlDocumento] = useState(null);
+  const [loadingDoc, setLoadingDoc] = useState(false);
 
   const fetchPendentesAssinatura = async () => {
     try {
@@ -99,9 +107,51 @@ export default function AssinaturasPendentes() {
     return "-";
   };
 
-  const handleAssinar = (item) => {
+  const buscarDocumentoRecibo = async (item) => {
+    try {
+      setLoadingDoc(true);
+      const token = await AsyncStorage.getItem("token");
+      const colaboradorId = await AsyncStorage.getItem("id");
+
+      const documentos = await buscarDocumentoporId(item.id, colaboradorId, token);
+      
+      let documentosArray = [];
+      if (Array.isArray(documentos)) {
+        documentosArray = documentos;
+      } else if (documentos?.data && Array.isArray(documentos.data)) {
+        documentosArray = documentos.data;
+      } else if (documentos?.documentos && Array.isArray(documentos.documentos)) {
+        documentosArray = documentos.documentos;
+      }
+
+      const recibo = documentosArray.find(
+        (doc) => doc.tipoDocumento?.toUpperCase() === "RECIBO"
+      );
+
+      if (recibo && recibo.nomeArquivoUnico) {
+        const urlData = await obterDocumentoUrl(recibo.nomeArquivoUnico, token);
+        const raw = urlData?.data || "";
+        const full = raw.startsWith("http")
+          ? raw
+          : `${process.env.EXPO_PUBLIC_API_URL || ""}${raw}`;
+        
+        setUrlDocumento(full);
+      } else {
+        setUrlDocumento(null);
+      }
+    } catch (error) {
+      setUrlDocumento(null);
+    } finally {
+      setLoadingDoc(false);
+    }
+  };
+
+  const handleAssinar = async (item) => {
     setSelecionado(item);
+    setUrlDocumento(null);
     setModalVisible(true);
+    
+    await buscarDocumentoRecibo(item);
   };
 
   const confirmarAssinatura = async () => {
@@ -111,6 +161,8 @@ export default function AssinaturasPendentes() {
       const token = await AsyncStorage.getItem("token");
       await assinarDocumento(selecionado.id, token);
       setModalVisible(false);
+      setSelecionado(null);
+      setUrlDocumento(null);
       Alert.alert("Sucesso", "Documento assinado com sucesso!");
       fetchPendentesAssinatura();
     } catch (err) {
@@ -142,12 +194,11 @@ export default function AssinaturasPendentes() {
     }
 
     if (!pendentes.length) {
-      // ✅ empty state alinhado ao ParcelamentoAberto
       return (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Nenhuma assinatura pendente</Text>
+          <Text style={styles.emptyText}>Nenhuma assinatura pendente encontrada.</Text>
           <Text style={styles.emptySubText}>
-            Quando houver documentos aguardando sua assinatura, eles aparecerão aqui.
+            Suas solicitações pendentes de assinatura aparecerão aqui.
           </Text>
         </View>
       );
@@ -189,49 +240,107 @@ export default function AssinaturasPendentes() {
         />
         {renderConteudo()}
 
-        {/* MODAL DE CONFIRMAÇÃO */}
-        <Modal visible={modalVisible} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitulo}>Confirmar Assinatura</Text>
+        {/* MODAL DE CONFIRMAÇÃO COM VISUALIZAÇÃO DO PDF */}
+        <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
+          <View style={styles.modalFullScreen}>
+            {/* HEADER */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderTitle}>Confirmar Assinatura</Text>
+              <Pressable
+                onPress={() => {
+                  setModalVisible(false);
+                  setSelecionado(null);
+                  setUrlDocumento(null);
+                }}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </Pressable>
+            </View>
 
+            <ScrollView style={styles.modalScrollContent}>
+              {/* INFORMAÇÕES DA SOLICITAÇÃO */}
               {selecionado && (
-                <>
-                  <Text style={styles.modalItem}>
-                    Benefício: {getTituloSolicitacao(selecionado)}
-                  </Text>
-                  <Text style={styles.modalItem}>
-                    Valor Total: R$ {selecionado.valorTotal?.toFixed(2) || "0,00"}
-                  </Text>
-                  <Text style={styles.modalItem}>
-                    Parcelas: {selecionado.qtdeParcelas || "-"}
-                  </Text>
-                  <Text style={styles.modalItem}>
-                    Tipo Pagamento: {selecionado.tipoPagamento || "-"}
-                  </Text>
-                </>
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoTitle}>Detalhes da Solicitação</Text>
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Benefício: </Text>
+                      {getTituloSolicitacao(selecionado)}
+                    </Text>
+                    <Text style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Valor Total: </Text>
+                      R$ {selecionado.valorTotal?.toFixed(2) || "0,00"}
+                    </Text>
+                    <Text style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Parcelas: </Text>
+                      {selecionado.qtdeParcelas || "-"}
+                    </Text>
+                    <Text style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Tipo Pagamento: </Text>
+                      {selecionado.tipoPagamento || "-"}
+                    </Text>
+                  </View>
+                </View>
               )}
 
-              <View style={styles.modalActions}>
-                <Pressable
-                  onPress={() => setModalVisible(false)}
-                  style={[styles.modalButton, { backgroundColor: "#9CA3AF" }]}
-                >
-                  <Text style={styles.modalButtonText}>Cancelar</Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={confirmarAssinatura}
-                  style={[styles.modalButton, { backgroundColor: "#065F46" }]}
-                  disabled={assinando}
-                >
-                  {assinando ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={styles.modalButtonText}>Assinar</Text>
-                  )}
-                </Pressable>
+              {/* VISUALIZAÇÃO DO DOCUMENTO */}
+              <View style={styles.documentSection}>
+                <Text style={styles.documentTitle}>Pré-visualização do Documento</Text>
+                
+                {loadingDoc ? (
+                  <View style={styles.docLoadingContainer}>
+                    <ActivityIndicator size="large" color="#065F46" />
+                    <Text style={styles.docLoadingText}>Carregando documento...</Text>
+                  </View>
+                ) : urlDocumento ? (
+                  <View style={styles.pdfContainer}>
+                    <WebView
+                      source={{ uri: urlDocumento }}
+                      style={styles.webview}
+                      startInLoadingState={true}
+                      renderLoading={() => (
+                        <View style={styles.webviewLoading}>
+                          <ActivityIndicator size="large" color="#065F46" />
+                        </View>
+                      )}
+                      onError={() => {
+                        Alert.alert("Erro", "Não foi possível carregar o documento");
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.noDocContainer}>
+                    <Text style={styles.noDocText}>Nenhum documento de recibo encontrado</Text>
+                  </View>
+                )}
               </View>
+            </ScrollView>
+
+            {/* BOTÕES DE AÇÃO */}
+            <View style={styles.actionButtons}>
+              <Pressable
+                onPress={() => {
+                  setModalVisible(false);
+                  setSelecionado(null);
+                  setUrlDocumento(null);
+                }}
+                style={[styles.actionButton, styles.cancelButton]}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={confirmarAssinatura}
+                style={[styles.actionButton, styles.confirmButton]}
+                disabled={assinando}
+              >
+                {assinando ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Assinar Documento</Text>
+                )}
+              </Pressable>
             </View>
           </View>
         </Modal>
@@ -259,17 +368,16 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 8,
+    fontSize: 16,
+    color: "#6B7280",
     textAlign: "center",
+    marginBottom: 8,
   },
   emptySubText: {
     fontSize: 14,
-    color: "#6B7280",
-    fontWeight: "400",
+    color: "#9CA3AF",
     textAlign: "center",
+    lineHeight: 20,
   },
   cardsContainer: { marginTop: 24, paddingBottom: 12 },
   card: {
@@ -304,34 +412,163 @@ const styles = StyleSheet.create({
   },
   icon: { width: 18, height: 18, resizeMode: "contain" },
 
-  // Modal
-  modalOverlay: {
+  // Modal Full Screen
+  modalFullScreen: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
+    backgroundColor: "#F9FAFB",
   },
-  modalContent: {
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    padding: 20,
-    width: "100%",
-    maxWidth: 350,
-  },
-  modalTitulo: { fontSize: 18, fontWeight: "700", color: "#111827", marginBottom: 12 },
-  modalItem: { fontSize: 15, color: "#374151", marginBottom: 6 },
-  modalActions: {
+  modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
+    alignItems: "center",
+    backgroundColor: "#065F46",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingTop: 50,
+    elevation: 4,
   },
-  modalButton: {
+  modalHeaderTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeButtonText: {
+    fontSize: 24,
+    color: "#FFF",
+    fontWeight: "bold",
+  },
+  modalScrollContent: {
     flex: 1,
-    paddingVertical: 10,
+  },
+
+  // Seção de Informações
+  infoSection: {
+    padding: 16,
+    backgroundColor: "#FFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  infoCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#065F46",
+  },
+  infoItem: {
+    fontSize: 14,
+    color: "#374151",
+    marginBottom: 6,
+  },
+  infoLabel: {
+    fontWeight: "600",
+    color: "#111827",
+  },
+
+  // Seção do Documento
+  documentSection: {
+    flex: 1,
+    padding: 16,
+  },
+  documentTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  pdfContainer: {
+    flex: 1,
+    minHeight: 400,
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    overflow: "hidden",
+    elevation: 2,
+  },
+  webview: {
+    flex: 1,
+  },
+  webviewLoading: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -25 }, { translateY: -25 }],
+  },
+  docLoadingContainer: {
+    flex: 1,
+    minHeight: 400,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+  },
+  docLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  noDocContainer: {
+    flex: 1,
+    minHeight: 400,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    borderStyle: "dashed",
+  },
+  noDocText: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+
+  // Botões de Ação
+  actionButtons: {
+    flexDirection: "row",
+    padding: 16,
+    backgroundColor: "#FFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
-    marginHorizontal: 5,
+    justifyContent: "center",
   },
-  modalButtonText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
+  cancelButton: {
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+  },
+  cancelButtonText: {
+    color: "#374151",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  confirmButton: {
+    backgroundColor: "#065F46",
+  },
+  confirmButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });

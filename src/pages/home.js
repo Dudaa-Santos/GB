@@ -128,7 +128,6 @@ export default function Home({ navigation }) {
       const id = await AsyncStorage.getItem("id");
       
       if (!token || !id) {
-        console.log("❌ Usuário não autenticado, redirecionando para Login");
         navigation.replace("Login");
         return false;
       }
@@ -168,7 +167,6 @@ export default function Home({ navigation }) {
       const token = await AsyncStorage.getItem("token");
       if (id && token) {
         const data = await buscarAgendamentoPorId(id, token);
-        console.log("📅 Agendamentos recebidos:", data);
         setAgendamentos(data);
       }
     } catch (error) {
@@ -281,7 +279,6 @@ export default function Home({ navigation }) {
       })
       .filter(Boolean); // Remove nulls
 
-    console.log("🔵 Datas com agendamento (ISO):", datas);
     return datas;
   }, [agendamentos]);
 

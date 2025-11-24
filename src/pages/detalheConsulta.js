@@ -42,9 +42,6 @@ export default function DetalheConsulta({ route }) {
   // ✅ Estado para controlar o modal
   const [modalVisible, setModalVisible] = useState(false);
 
-  console.log("=== DetalheConsulta ===");
-  console.log("Consulta recebida:", JSON.stringify(consulta, null, 2));
-
   // ✅ Calcula a cor do status
   const statusColor = getStatusColor(consulta?.status);
 
@@ -187,8 +184,6 @@ export default function DetalheConsulta({ route }) {
                 Alert.alert("Erro", "ID do agendamento não encontrado");
                 return;
               }
-
-              console.log("🔄 Cancelando agendamento:", consulta.idAgendamento);
 
               // ✅ Chama a API para cancelar
               await alterarStatusAgendamento(

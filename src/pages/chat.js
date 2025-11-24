@@ -46,7 +46,6 @@ export default function Chat() {
 
     const showSub = Keyboard.addListener(show, (e) => {
       setKbHeight(e.endCoordinates?.height ?? 0);
-      // Rola para o final quando o teclado abre
       setTimeout(() => {
         listRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -71,35 +70,21 @@ export default function Chat() {
   // ---------- ENVIAR DOCUMENTO (/chat/upload) ----------
   const handleEnviarDocumento = async () => {
     try {
-      console.log("=== INICIANDO UPLOAD DE DOCUMENTO ===");
-      
       const result = await DocumentPicker.getDocumentAsync({
         type: "*/*",
         multiple: false,
         copyToCacheDirectory: true,
       });
 
-      console.log("Resultado do DocumentPicker:", JSON.stringify(result, null, 2));
-
       if (result.canceled) {
-        console.log("Upload cancelado pelo usuário");
         return;
       }
 
       const file = result.assets?.[0];
       if (!file) {
-        console.error("Nenhum arquivo selecionado");
         return;
       }
 
-      console.log("Arquivo selecionado:", {
-        name: file.name,
-        size: file.size,
-        mimeType: file.mimeType,
-        uri: file.uri,
-      });
-
-      // mostra no chat o arquivo selecionado
       const msgDocumento = {
         id: Date.now().toString(),
         text: `📎 ${file.name}`,
@@ -112,7 +97,6 @@ export default function Chat() {
         listRef.current?.scrollToEnd({ animated: true });
       }, 150);
 
-      // ✅ Adiciona indicador de "digitando..."
       const typingId = `typing-${Date.now()}`;
       setConversa((prev) => [
         ...prev,
@@ -127,35 +111,23 @@ export default function Chat() {
 
       const token = await AsyncStorage.getItem("token");
       if (!token) {
-        console.error("Token não encontrado no AsyncStorage");
         throw new Error("Token não encontrado. Faça login novamente.");
       }
 
-      console.log("Token recuperado:", token.substring(0, 20) + "...");
-      console.log("ConversationId atual:", conversationId);
-      console.log("PendingData atual:", pendingData);
-
-      console.log("Chamando uploadChatDocument...");
       const respostaUpload = await uploadChatDocument(
         { file, conversationId, pendingData },
         token
       );
 
-      console.log("Resposta do upload:", JSON.stringify(respostaUpload, null, 2));
-
       const payload = respostaUpload?.data ?? respostaUpload;
-      console.log("Payload extraído:", JSON.stringify(payload, null, 2));
 
       const novoConversationId = payload?.conversationId || conversationId;
-      console.log("Novo conversationId:", novoConversationId);
       setConversationId(novoConversationId);
 
       const novoPendingData = payload?.pendingData ?? null;
-      console.log("Novo pendingData:", novoPendingData);
       setPendingData(novoPendingData);
 
       const nextAction = payload?.nextAction || null;
-      console.log("NextAction recebido:", nextAction);
       setAwaitingUpload(nextAction === "AWAITING_UPLOAD");
 
       const textoRespostaDoBot =
@@ -163,9 +135,6 @@ export default function Chat() {
         payload?.message ??
         JSON.stringify(respostaUpload);
 
-      console.log("Texto resposta do bot:", textoRespostaDoBot);
-
-      // ✅ Remove o "digitando..." e adiciona a resposta
       const respostaBot = {
         id: (Date.now() + 1).toString(),
         text: textoRespostaDoBot,
@@ -182,37 +151,7 @@ export default function Chat() {
         listRef.current?.scrollToEnd({ animated: true });
       }, 150);
 
-      console.log("=== UPLOAD CONCLUÍDO COM SUCESSO ===");
     } catch (error) {
-      console.error("=== ERRO NO UPLOAD DE DOCUMENTO ===");
-      console.error("Tipo do erro:", error.constructor.name);
-      console.error("Mensagem:", error.message);
-      console.error("Stack:", error.stack);
-
-      // Erros da requisição HTTP
-      if (error.response) {
-        console.error("=== ERRO DA RESPOSTA HTTP ===");
-        console.error("Status:", error.response.status);
-        console.error("Status Text:", error.response.statusText);
-        console.error("Headers:", JSON.stringify(error.response.headers, null, 2));
-        console.error("Data:", JSON.stringify(error.response.data, null, 2));
-      }
-
-      // Erro na requisição (não chegou no servidor)
-      if (error.request) {
-        console.error("=== ERRO NA REQUISIÇÃO (SEM RESPOSTA) ===");
-        console.error("Request:", error.request);
-      }
-
-      // Erro de configuração
-      if (error.config) {
-        console.error("=== CONFIGURAÇÃO DA REQUISIÇÃO ===");
-        console.error("URL:", error.config.url);
-        console.error("Method:", error.config.method);
-        console.error("Headers:", JSON.stringify(error.config.headers, null, 2));
-        console.error("Params:", JSON.stringify(error.config.params, null, 2));
-      }
-
       const msgErro = error.response?.data?.message || error.message || "Erro desconhecido";
       
       const respostaErro = {
@@ -222,7 +161,6 @@ export default function Chat() {
         time: getHoraAgora(),
       };
       
-      // ✅ Remove o "digitando..." e adiciona a mensagem de erro
       setConversa((prev) => {
         const semTyping = prev.filter((m) => !m.typing);
         return [...semTyping, respostaErro];
@@ -233,8 +171,6 @@ export default function Chat() {
       setTimeout(() => {
         listRef.current?.scrollToEnd({ animated: true });
       }, 150);
-
-      console.error("=== FIM DO LOG DE ERRO ===");
     } finally {
       setIsLoading(false);
     }
@@ -306,7 +242,6 @@ export default function Chat() {
         listRef.current?.scrollToEnd({ animated: true });
       }, 150);
     } catch (error) {
-      console.error("Erro ao chamar chatbot:", error);
       const respostaErro = {
         id: (Date.now() + 1).toString(),
         text: "Desculpe, tive um problema ao processar sua mensagem. Tente novamente.",
@@ -458,7 +393,6 @@ export default function Chat() {
         ]}
         onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
       >
-        {/* Campo de texto sempre visível, mas bloqueado quando awaitingUpload */}
         <TextInput
           ref={inputRef}
           style={[
@@ -485,7 +419,6 @@ export default function Chat() {
           editable={!isLoading && !primeiroUso && !awaitingUpload}
         />
 
-        {/* Botão à direita: seta normal ou clipe */}
         <Pressable
           style={[
             styles.sendButton,
@@ -500,7 +433,6 @@ export default function Chat() {
           }
           hitSlop={10}
         >
-          {/* ✅ Ícone fixo, sem loading */}
           {awaitingUpload ? (
             <Icon name="paperclip" size={SCREEN_WIDTH * 0.06} color="#fff" />
           ) : (
@@ -547,7 +479,6 @@ const styles = StyleSheet.create({
     paddingBottom: SCREEN_HEIGHT * 0.18,
   },
 
-  // EMPTY
   emptyWrap: {
     flex: 1,
     alignItems: "center",
@@ -596,7 +527,6 @@ const styles = StyleSheet.create({
     color: "#2E2E2E",
   },
 
-  // INPUT / DOCUMENTO
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
