@@ -20,23 +20,23 @@ import * as Sharing from "expo-sharing";
 
 // ✅ Função EXATAMENTE IGUAL ao cardStatus.js - ORDEM CORRETA
 function getStatusColor(status) {
-    if (!status) return "#6B7280";
+  if (!status) return "#6B7280";
 
-    const statusLower = status.toLowerCase();
+  const statusLower = status.toLowerCase();
 
-    // ✅ PEND. ASSINAR TEM QUE VIR ANTES DE PENDENTE
-    if (statusLower.includes("pend. assinar") || statusLower.includes("pendente_assinatura")) return "#315fd3ff"; // Azul
-    if (statusLower.includes("pendente")) return "#F59E0B"; // Laranja
-    if (statusLower.includes("aprovado") || statusLower.includes("aprovada")) return "#065F46"; // Verde escuro
-    if (statusLower.includes("recusada") || statusLower.includes("negado")) return "#DC2626"; // Vermelho
+  // ✅ PEND. ASSINAR TEM QUE VIR ANTES DE PENDENTE
+  if (statusLower.includes("pend. assinar") || statusLower.includes("pendente_assinatura")) return "#315fd3ff"; // Azul
+  if (statusLower.includes("pendente")) return "#F59E0B"; // Laranja
+  if (statusLower.includes("aprovado") || statusLower.includes("aprovada")) return "#065F46"; // Verde escuro
+  if (statusLower.includes("recusada") || statusLower.includes("negado")) return "#DC2626"; // Vermelho
 
-    // Consultas
-    if (statusLower.includes("agendado") || statusLower.includes("agendada")) return "#315fd3ff"; // Azul
-    if (statusLower.includes("concluído") || statusLower.includes("concluida")) return "#065F46"; // Verde
-    if (statusLower.includes("cancelado") || statusLower.includes("cancelada")) return "#DC2626"; // Vermelho
-    if (statusLower.includes("faltou")) return "#F59E0B"; // Laranja
+  // Consultas
+  if (statusLower.includes("agendado") || statusLower.includes("agendada")) return "#315fd3ff"; // Azul
+  if (statusLower.includes("concluído") || statusLower.includes("concluida")) return "#065F46"; // Verde
+  if (statusLower.includes("cancelado") || statusLower.includes("cancelada")) return "#DC2626"; // Vermelho
+  if (statusLower.includes("faltou")) return "#F59E0B"; // Laranja
 
-    return "#065F46"; // Verde padrão
+  return "#065F46"; // Verde padrão
 }
 
 export default function DetalheBeneficio({ route }) {
@@ -52,20 +52,20 @@ export default function DetalheBeneficio({ route }) {
   // Função para normalizar o status
   const normalizeStatus = (status) => {
     if (!status) return "PENDENTE";
-    
+
     const statusUpper = status.toUpperCase();
-    
+
     if (statusUpper === "PENDENTE_ASSINATURA") {
       return "Pend. Assinar";
     }
-    
+
     return status;
   };
 
   // ✅ FUNÇÃO PARA SEPARAR DOCUMENTOS POR TIPO
   const separarDocumentosPorTipo = () => {
     const grupos = {};
-    
+
     documentos.forEach((doc) => {
       const tipo = doc.tipoDocumento?.toUpperCase() || "OUTROS";
       if (!grupos[tipo]) {
@@ -86,12 +86,12 @@ export default function DetalheBeneficio({ route }) {
       COMPROVANTE_SOLICITACAO: "Comprovantes de Solicitação",
       OUTROS: "Outros Documentos",
     };
-    
+
     // Se tiver no mapeamento, retorna o nome formatado
     if (nomes[tipo]) {
       return nomes[tipo];
     }
-    
+
     // Caso contrário, formata o tipo automaticamente
     // Remove underscores, coloca primeira letra maiúscula
     return tipo
@@ -161,7 +161,7 @@ export default function DetalheBeneficio({ route }) {
 
         try {
           const urlData = await documentoUrl(nomeArquivoParaBusca, token);
-          
+
           const raw = urlData?.data || "";
           const full = raw.startsWith("http")
             ? raw
@@ -509,6 +509,16 @@ export default function DetalheBeneficio({ route }) {
             )}
           </View>
 
+          {/* Justificativa - apenas se existir */}
+          {solicitacao.justificativa && (
+            <View style={styles.justificativaSection}>
+              <Text style={styles.sectionTitle}>Justificativa</Text>
+              <View style={[styles.descricaoCard, { borderLeftColor: statusColor }]}>
+                <Text style={styles.descricaoText}>{solicitacao.justificativa}</Text>
+              </View>
+            </View>
+          )}
+
           {/* Parcelamento */}
           {solicitacao.qtdeParcelas && solicitacao.qtdeParcelas > 1 && (
             <View style={styles.parcelamentoSection}>
@@ -584,9 +594,9 @@ const styles = StyleSheet.create({
   },
   headerCard: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   beneficioTitulo: { fontSize: 18, fontWeight: "bold", color: "#1F2937", flex: 1 },
-  statusBadge: { 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "#00000030",
@@ -627,7 +637,7 @@ const styles = StyleSheet.create({
   },
   loadingText: { marginTop: 12, fontSize: 14, color: "#6B7280", textAlign: "center" },
   documentosStatus: { fontSize: 15, color: "#1F2937", fontWeight: "600", marginBottom: 16 },
-  
+
   // ✅ TÍTULO SIMPLES - NÃO É CARD
   tipoDocumentoSection: {
     marginBottom: 20,
@@ -658,7 +668,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  
+
   // ✅ CARDS DE DOCUMENTOS - COR BRANCA PADRÃO
   docRow: {
     flexDirection: "row",
@@ -712,10 +722,10 @@ const styles = StyleSheet.create({
   },
   iconBtnPressed: { opacity: 0.8 },
   iconBtnDisabled: { opacity: 0.45 },
-  iconOnly: { 
-    width: 22, 
-    height: 16, 
-    alignItems: "center", 
+  iconOnly: {
+    width: 22,
+    height: 16,
+    alignItems: "center",
     justifyContent: "center",
     position: 'relative'
   },
@@ -769,19 +779,19 @@ const styles = StyleSheet.create({
   },
   parcelamentoSection: { marginBottom: 16 },
   colaboradorSection: { marginBottom: 16 },
-  colaboradorCard: { 
+  colaboradorCard: {
     backgroundColor: "#F8F7F7",
-    borderRadius: 8, 
-    padding: 16, 
+    borderRadius: 8,
+    padding: 16,
     borderLeftWidth: 4,
   },
   colaboradorNome: { fontSize: 16, fontWeight: "bold", color: "#1F2937", marginBottom: 4 },
   colaboradorInfo: { fontSize: 14, color: "#6B7280", marginBottom: 2 },
   dependenteSection: { marginBottom: 16 },
-  dependenteCard: { 
+  dependenteCard: {
     backgroundColor: "#F8F7F7",
-    borderRadius: 8, 
-    padding: 16, 
+    borderRadius: 8,
+    padding: 16,
     borderLeftWidth: 4,
   },
   dependenteNome: { fontSize: 16, fontWeight: "bold", color: "#1F2937", marginBottom: 4 },
@@ -799,4 +809,5 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "center",
   },
+  justificativaSection: { marginBottom: 16 },
 });

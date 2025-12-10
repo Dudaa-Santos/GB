@@ -343,6 +343,7 @@ export default function Historico() {
       qtdeParcelas: solicitacao.qtdeParcelas,
       tipoPagamento: solicitacao.tipoPagamento,
       desconto: solicitacao.desconto,
+      justificativa: solicitacao.justificativa,
       descricao: solicitacao.descricao,
       beneficio: solicitacao.beneficio
         ? { nome: solicitacao.beneficio.nome }
